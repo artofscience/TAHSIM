@@ -5,11 +5,13 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from scipy.integrate import solve_ivp
-from math import sqrt
-from typing import List
+from math import sqrt, pi
 from utils import Sigmoid
 
 class Motor(ABC):
+    rpmtoradps = (2 * pi) / 60  # conversion rate rpm to rad/s
+    radpstorpm = 1 / rpmtoradps  # conversion rate rad/s to rpm
+
     def __init__(self, voltage=lambda t: Sigmoid()(t), load_torque=lambda w: 1e-9 * np.power(w, 2)):
         self.applied_voltage = voltage
         self.load_torque = load_torque

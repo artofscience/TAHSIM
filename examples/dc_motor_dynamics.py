@@ -5,23 +5,20 @@ from utils import Sigmoid, colored_line
 
 from motors import DCMotor
 
-voltage = lambda t: Sigmoid(6.0, 20, 0.3)(t) + Sigmoid(1.0, 20, 1.0)(t) * np.sin(2 * (2*pi) * t)# step in voltage at t = tV
-torque = lambda t, w: + Sigmoid(1e-3, 20, 2.0)(t) * np.sin(6 * (2*pi) * t) + 1e-9 * np.power(w, 2)# time-dependent torque
+voltage = lambda t: Sigmoid(6.0, 20, 0.3)(t) + Sigmoid(1.0, 20, 1.0)(t) * np.sin(2 * (2*pi) * t)
+torque = lambda t, w: + Sigmoid(1e-3, 20, 2.0)(t) * np.sin(6 * (2*pi) * t) + 1e-9 * np.power(w, 2)
 
 motor = DCMotor(voltage, torque)
 
 sol = motor(t=4.0)
-
-torpm = 60 / (2 * pi)
-tomilli = 1e3
 
 plt.figure()
 
 time = sol.t
 voltage = voltage(time)
 current = sol.y[0]
-torque = torque(time, sol.y[1] * tomilli)
-speed = sol.y[1] * torpm / tomilli
+torque = torque(time, sol.y[1] * 1000)
+speed = sol.y[1] * motor.radpstorpm / 1000
 
 plt.subplot(4, 1, 1)
 plt.plot(time, voltage)
