@@ -68,6 +68,24 @@ class DoubleHill:
         df = f.diff(t)
         return f, df
 
+class TDP:
+    """
+    Time-dependent parameter funtion.
+
+    y = min + alpha * (max - min) * f(t)
+    dy/dt = alpha * (max - min) * df/dt(t)
+    """
+    def __init__(self, activation_function = DoubleHill(), alpha: float = 1.0, min: float = 0.1, max = 1.0):
+        self.activation_function = activation_function
+        self.alpha = alpha
+        self.min = min
+        self.max = max
+
+    def __call__(self, t: float) -> float:
+        return self.min + self.alpha * (self.max - self.min) * self.activation_function(t)
+
+    def diff(self, t: float) -> float:
+        return self.alpha * (self.max - self.min) * self.activation_function.diff(t)
 
 def cubic_fit(x: np.ndarray, y: np.ndarray, id: int, m: float):
     """
