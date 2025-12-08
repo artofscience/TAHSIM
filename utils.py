@@ -4,6 +4,7 @@ Utilitarian functionalities.
 
 import numpy as np
 from matplotlib.collections import LineCollection
+from sympy import symbols
 
 class Sigmoid:
     def __init__(self, L: float = 1.0, k: float = 1.0, x0: float = 0.0):
@@ -11,11 +12,62 @@ class Sigmoid:
         self.k = k
         self.x0 = x0
 
+    def tmp(self, x: float):
+        return np.exp(-self.k * (x - self.x0))
+
     def __call__(self, x: float) -> float:
-        return self.L / (1 + np.exp(-self.k * (x - self.x0)))
+        return self.L / (1 + self.tmp(x))
 
     def diff(self, x: float) -> float:
-        return self(x) * (1 - self(x))
+        return self.L * self.k * self.tmp(x) / (1 + self.tmp(x))**2
+
+class DoubleHill:
+    def __init__(self, period: float = 1.0,
+                 alpha_systole: float = 0.303,
+                 alpha_diastole: float = 0.508,
+                 rc: float = 1.32,
+                 rr: float = 21.9):
+        self.period = period
+        self.alpha_systole = alpha_systole
+        self.alpha_diastole = alpha_diastole
+        self.rc = rc
+        self.rr = rr
+
+        # default values from Stergiopulos et al. (1996) Table 1. "Basic model parameters"
+
+    def __call__(self, t) -> float:
+        t = t % self.period
+
+        tmp1 = (t / (self.alpha_systole * self.period)) ** self.rc
+        tmp2 = (t / (self.alpha_diastole * self.period)) ** self.rr
+
+        return (tmp1 / (1 + tmp1)) * (1 / (1 + tmp2))
+
+    def diff(self, t) -> float:
+        t = t % self.period + 1e-16
+
+
+        return (self.period * self.alpha_diastole) ** self.rr * (self.rc * t ** (self.rc + 2) * (
+                        t ** self.rc + (self.period * self.alpha_systole) ** self.rc) * (t ** self.rr + (
+                        self.period * self.alpha_diastole) ** self.rr) - self.rc * t ** (2 * self.rc + 2) * (
+                                                                                 t ** self.rr + (
+                                                                                     self.period * self.alpha_diastole) ** self.rr) - self.rr * t ** (
+                                                                                 self.rc + self.rr + 2) * (
+                                                                                 t ** self.rc + (
+                                                                                     self.period * self.alpha_systole) ** self.rc)) / (
+                        t ** 3 * (t ** self.rc + (self.period * self.alpha_systole) ** self.rc) ** 2 * (
+                            t ** self.rr + (self.period * self.alpha_diastole) ** self.rr) ** 2)
+
+    def symbolic(self):
+        rc, rr, alc, ald, t, T = symbols('rc, rr, alc, ald, t, T', positive=True)
+
+        tmp1 = (t / (alc * T)) ** rc
+        tmp2 = (t / (ald * T)) ** rr
+
+        f = (tmp1 / (1 + tmp1)) * (1 / (1 + tmp2))
+        df = f.diff(t)
+        return f, df
+
 
 def cubic_fit(x: np.ndarray, y: np.ndarray, id: int, m: float):
     """
