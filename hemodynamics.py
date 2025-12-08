@@ -13,7 +13,6 @@ from utils import colored_line, TDP
 class VAV:
     def __init__(self, tah: TAH = TimeVaryingElastance(),
                  L: float = 0.01,
-                 V0: float = 20,
                  C: float = 1.5,
                  R: float = 1.05,
                  Z: float = 0.1,
@@ -22,7 +21,6 @@ class VAV:
                  Rvc: float = 1000):
         self.tah = tah
         self.L = L
-        self.V0 = V0
         self.C = C
         self.R = R
         self.Z = Z
