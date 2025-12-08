@@ -5,7 +5,7 @@ from utils import DoubleHill
 
 fcn = DoubleHill()
 
-time = np.linspace(0, fcn.period, 10000)
+time = np.linspace(0, fcn.period, 1000)
 
 fig, ax = plt.subplots(2,1)
 
