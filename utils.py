@@ -5,6 +5,18 @@ Utilitarian functionalities.
 import numpy as np
 from matplotlib.collections import LineCollection
 
+class Sigmoid:
+    def __init__(self, L: float = 1.0, k: float = 1.0, x0: float = 0.0):
+        self.L = L
+        self.k = k
+        self.x0 = x0
+
+    def __call__(self, x: float) -> float:
+        return self.L / (1 + np.exp(-self.k * (x - self.x0)))
+
+    def diff(self, x: float) -> float:
+        return self(x) * (1 - self(x))
+
 def cubic_fit(x: np.ndarray, y: np.ndarray, id: int, m: float):
     """
     Cubic fit of y[i] = ax[i]**3 + bx[i]**2 + cx[i] + d through 3 points

@@ -1,58 +1,59 @@
 import numpy as np
-from math import pi
 from matplotlib import pyplot as plt
+from math import pi
+from utils import Sigmoid, colored_line
 
 from motors import DCMotor
 
+voltage = lambda t: Sigmoid(6.0, 20, 0.3)(t) + Sigmoid(1.0, 20, 1.0)(t) * np.sin(2 * (2*pi) * t)# step in voltage at t = tV
+torque = lambda t, w: + Sigmoid(1e-3, 20, 2.0)(t) * np.sin(6 * (2*pi) * t) + 1e-9 * np.power(w, 2)# time-dependent torque
 
-motor = DCMotor()
+motor = DCMotor(voltage, torque)
 
-speed = np.linspace(0, 1000, 100)
-torpm = 60 / (2 * pi) / 1000
+sol = motor(t=4.0)
+
+torpm = 60 / (2 * pi)
 tomilli = 1e3
-rpm = [i * torpm for i in speed]
-V = 6.0
-
-no_load_speed = motor.max_speed(V)
-stall_torque = motor.stall_torque(V)
-max_power = 0.25 * stall_torque * no_load_speed
-max_power_speed = motor.max_power_speed(V)
-efficient_speed = motor.efficient_speed(V)
-
-torque = motor.torque(V, speed)
-electrical_power = V * motor.current(V, speed)
-mechanical_power = speed * motor.torque(V, speed)
-efficiency = motor.efficiency(V, speed)
 
 plt.figure()
 
-plt.subplot(2, 1, 1)
+time = sol.t
+voltage = voltage(time)
+current = sol.y[0]
+torque = torque(time, sol.y[1] * tomilli)
+speed = sol.y[1] * torpm / tomilli
 
-plt.plot(rpm, torque * tomilli)
+plt.subplot(4, 1, 1)
+plt.plot(time, voltage)
+plt.ylabel('Voltage [V]')
 
-plt.xlim([0, no_load_speed * torpm])
-plt.ylim([0, stall_torque * tomilli])
+plt.subplot(4, 1, 2)
+plt.plot(time, current)
+plt.ylabel('Current [A]')
 
-plt.xlabel('kRPM')
-plt.ylabel('Torque [mN x m]')
+plt.subplot(4, 1, 3)
+plt.plot(time, torque)
+plt.ylabel('Torque [Nmm]')
 
-plt.subplot(2, 1, 2)
+plt.subplot(4, 1, 4)
+plt.plot(time, speed)
+plt.ylabel('Speed [krpm]')
 
-plt.plot(rpm, electrical_power, label='Electrical')
-plt.plot(rpm, mechanical_power, label='Mechanical')
-plt.axhline(y=max_power, linestyle='--', color='k', label='Max mechanical power')
-plt.axvline(x=max_power_speed * torpm, linestyle='--', color='k', label='Speed at max mechanical power')
-plt.plot(rpm, electrical_power - mechanical_power, label='Lost')
-plt.plot(rpm, max_power * efficiency, label='Efficiency x max mechanical power')
-plt.axvline(x=efficient_speed * torpm, linestyle='--', color='k', label='Speed at max efficiency')
+plt.figure()
+colored_line(voltage, current, time, plt.gca())
+plt.ylabel('Current [A]')
+plt.xlabel('Voltage [V]')
+plt.xlim([0, max(voltage)])
+plt.ylim([0, max(current)])
 
-plt.xlim([0, no_load_speed * torpm])
-plt.gca().set_ylim(bottom=0)
-plt.legend()
-
-plt.xlabel('kRPM')
-plt.ylabel('Power [W]')
+plt.figure()
+colored_line(speed, torque, time, plt.gca())
+plt.ylabel('Torque [Nmm]')
+plt.xlabel('Speed [krpm]')
+plt.xlim([0, max(speed)])
+plt.ylim([0, max(torque)])
 
 plt.show()
+
 
 

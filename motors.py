@@ -2,20 +2,34 @@
 Lumped-parameter models describing the dynamics of DC motors.
 """
 from abc import ABC, abstractmethod
+import numpy as np
+
 from scipy.integrate import solve_ivp
 from math import sqrt
 from typing import List
+from utils import Sigmoid
 
 class Motor(ABC):
-    def __call__(self, y0, load=None,
-                 t: List[float] = [0.0, 10.0],
+    def __init__(self, voltage=lambda t: Sigmoid()(t), load_torque=lambda w: 1e-9 * np.power(w, 2)):
+        self.applied_voltage = voltage
+        self.load_torque = load_torque
+
+    def __call__(self, y0 = (0.0, 0.0), t: float = 1.0, voltage=None,
+                 load_torque=None,
+                 t_begin: float = 0.0,
                  atol: float = 1e-3, rtol: float = 1e-3):
-        self.V = load[0] # operating / reference voltage
-        self.tau = load[1] # torque applied to the rotor by an external load
-        return solve_ivp(self.solve, t, y0, atol=atol, rtol=rtol)
+        if voltage is not None: self.applied_voltage = voltage
+        if load_torque is not None: self.load_torque = load_torque
+        return solve_ivp(self.solve, [t_begin, t], y0, atol=atol, rtol=rtol)
 
     def solve(self, t, y):
         pass
+
+    def set_voltage(self, voltage):
+        self.applied_voltage = voltage
+
+    def set_torque(self, torque):
+        self.load_torque = torque
 
 class DCMotor(Motor):
 
@@ -41,14 +55,16 @@ class DCMotor(Motor):
     tau0 = kt I - mu w
 
     """
-    def __init__(self, L: float = 0.11 / 1000,
+    def __init__(self, applied_voltage=None,
+                 load_torque=None,
+                 L: float = 0.11 / 1000,
                  R: float = 1.71,
                  M: float = 3.88 / 1e7,
                  kt: float = 5.9 / 1000,
                  mu: float = 12 / 1e7):
 
         # Default values for Maxxon Amax 22, 5 Watt motor
-
+        super().__init__(applied_voltage, load_torque)
         self.L = L # motor inductance in Henrys
         self.R = R # motor winding resistance in Ohms
         self.M = M # rotor moment of inertia in Kilogram / meter squared
@@ -60,8 +76,8 @@ class DCMotor(Motor):
     def solve(self, t, y):
         # y = [I, v]
 
-        dI = (self.V(t) - self.R * y[0] - self.kb * y[1]) / self.L
-        dv = (self.kt * y[0] - self.mu * y[1] - self.tau(t, y[1])) / self.M
+        dI = (self.applied_voltage(t) - self.R * y[0] - self.kb * y[1]) / self.L
+        dv = (self.kt * y[0] - self.mu * y[1] - self.load_torque(t, y[1])) / self.M
 
         return [dI, dv]
 
