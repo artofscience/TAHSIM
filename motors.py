@@ -83,6 +83,11 @@ class DCMotor(Motor):
 
         return [dI, dv]
 
+    def solve_tau(self, t, i, w, tau):
+        dI = (self.applied_voltage(t) - self.R * i - self.kb * w) / self.L
+        dv = (self.kt * i - tau - self.mu * w) / self.M
+        return [dI, dv]
+
     def speed(self, V: float = 1.0, tau: float = 1e-3):
 
         # can be rewritten as

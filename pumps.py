@@ -56,5 +56,14 @@ class CentrifugalPump(Pump):
         self.eff0p = np.array([0.0, self.effn0, 0.0]) # efficiency points for eta(q0)
         self.eff0 = np.poly1d(cubic_fit(self.q0p, self.eff0p, 1, 0))
 
+    def solve(self, t, y):
+        # note assumes here y = (shaft speed, flow rate)
+        h_pump = self.hq(y[1], y[0])
+        qop_ref = (self.w0 / y[0]) * y[1]
+        hydraulic_power_ref = qop_ref * self.hq0(qop_ref) * self.gamma
+        mechanical_power_ref = hydraulic_power_ref * self.eff0(qop_ref)
+        tau = mechanical_power_ref * y[0]**2 / self.w0**3
+        return tau, h_pump
+
     def get_operating_points(self, n: int = 100, tol: float = 1e-6):
         return np.linspace(tol, self.qm0-tol, n), np.linspace(0.0, self.hm0, n)
