@@ -2,6 +2,25 @@
 Lumped-parameter models of dynamic flow circuits that inverter DC flow to AC flow, typically using hysteretic components.
 """
 
+class Oscillator:
+    def __init__(self, Ropen: float = 1e4, Rclosed: float = 1e8):
+        self.Ropen = Ropen
+        self.Rclosed = Rclosed
+        self.closed = True
+        self.dhopen = 35
+        self.dhclose = 10
+
+    def __call__(self, t, dh):
+
+        if dh > self.dhopen:
+            self.closed = False
+            return self.Ropen
+        elif dh < self.dhclose:
+            self.closed = True
+            return self.Rclosed
+        else:
+            return self.Rclosed if self.closed else self.Ropen
+
 class Inverter:
     pass
 

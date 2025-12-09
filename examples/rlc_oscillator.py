@@ -6,48 +6,13 @@ from utils import colored_line, Sigmoid
 
 from pumps import CentrifugalPump
 from motors import DCMotor
-from inverters import RLCCircuit
+from inverters import RLCCircuit, Oscillator
 from assemblies import MotorPumpLoadAssembly
 
-def plot_pump_props(pump):
-    q0, h0 = pump.get_operating_points(1000)
-
-    z = np.linspace(0.1, 2, 10)
-    w = pump.w0 * z
-
-    for i in w:
-        zi = i / pump.w0
-        q = zi * q0
-        hi = pump.hq(q, i)
-        plt.plot(q * pump.cubpstolmin, hi, color="black", label=f"w/w0 = {zi:.2f}")
-
-    plt.scatter(pump.q0p * pump.cubpstolmin, pump.h0p, color="blue")
-    plt.plot(q0 * pump.cubpstolmin, pump.hq0(q0), color="blue", linewidth=4)
-
-    plt.xlim([0.0, 1.5 * pump.q0p[-1] * pump.cubpstolmin])
-    plt.ylim([0.0, 2.5 * pump.h0p[0]])
-
-    plt.legend()
+from helper_functions.plot_pump_props import plot_pump_props
 
 
-class Oscillator:
-    def __init__(self, Ropen: float = 1e4, Rclosed: float = 1e8):
-        self.Ropen = Ropen
-        self.Rclosed = Rclosed
-        self.closed = True
-        self.dhopen = 50
-        self.dhclose = 10
 
-    def __call__(self, t, dh):
-
-        if dh > self.dhopen:
-            self.closed = False
-            return self.Ropen
-        elif dh < self.dhclose:
-            self.closed = True
-            return self.Rclosed
-        else:
-            return self.Rclosed if self.closed else self.Ropen
 
 
 pump = CentrifugalPump(hm0=24, hn0=18, qn0=16/60000, qm0=32/60000)

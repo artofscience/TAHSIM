@@ -4,11 +4,7 @@ Hemodynamic lumped-parameter models describing the dynamics of the systemic and/
 
 import numpy as np
 from scipy.integrate import solve_ivp
-from tahs import TAH, TimeVaryingElastance, PressureActuatedLinearMembrane, PressureActuatedNonlinearMembrane
-from matplotlib import pyplot as plt
-from matplotlib.gridspec import GridSpec
-
-from utils import colored_line, TDP
+from tahs import TAH, TimeVaryingElastance
 
 class VAV:
     def __init__(self, tah: TAH = TimeVaryingElastance(),
