@@ -3,7 +3,7 @@ from scipy.integrate import solve_ivp
 
 from motors import DCMotor
 from pumps import CentrifugalPump
-from inverters import RLCCircuit
+from circuits import RLCCircuit
 
 class MotorPumpLoadAssembly:
     def __init__(self,

@@ -6,7 +6,7 @@ from utils import colored_line, Sigmoid
 
 from pumps import CentrifugalPump
 from motors import DCMotor
-from inverters import RLCCircuit
+from circuits import RLCCircuit
 from assemblies import MotorPumpLoadAssembly
 
 from helper_functions.plot_pump_props import plot_pump_props

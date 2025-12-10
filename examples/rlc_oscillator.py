@@ -6,14 +6,10 @@ from utils import colored_line, Sigmoid
 
 from pumps import CentrifugalPump
 from motors import DCMotor
-from inverters import RLCCircuit, Oscillator
+from circuits import RLCCircuit, Oscillator
 from assemblies import MotorPumpLoadAssembly
 
 from helper_functions.plot_pump_props import plot_pump_props
-
-
-
-
 
 pump = CentrifugalPump(hm0=24, hn0=18, qn0=16/60000, qm0=32/60000)
 motor = DCMotor()
@@ -24,8 +20,8 @@ motor.set_voltage(voltage)
 
 # setup time-dependent circuit parameters
 resistance = Oscillator(1e3, 1e10)
-capacitance = lambda t: 5e-6
-inductance = lambda t: 10
+capacitance = lambda t: 5e-6 * np.ones_like(t)
+inductance = lambda t: 10 * np.ones_like(t)
 
 circuit = RLCCircuit(resistance, capacitance, inductance)
 
@@ -46,7 +42,7 @@ fig, ax = plt.subplots(4,3)
 
 ax[0 , 0].plot(time, voltage(time), label='V')
 # ax[0, 1].plot(time, resistance(time, time), label='R')
-# ax[0, 2].plot(time, capacitance(time), label='C')
+ax[0, 2].plot(time, capacitance(time), label='C')
 ax[1,0].plot(time, sol[0], label='I')
 ax[1,1].plot(time, sol[1] * pump.radpstorpm, label="w")
 ax[1,2].plot(time, sol[2] * pump.cubpstolmin, label='Capacity [L/min]')
