@@ -25,7 +25,8 @@ class Oscillator:
             return self.Rclosed if self.closed else self.Ropen
 
 class Circuit:
-    pass
+    def solve(self, t, h_pump, param):
+        pass
 
 class NLRLCircuit(Circuit):
     """
@@ -35,10 +36,9 @@ class NLRLCircuit(Circuit):
         self.resistance = resistance
         self.inductance = inductance
 
-    def solve(self, t, h_pump, q):
-        h = self.resistance * q**2
-        dq = (h_pump - h) / self.inductance
-        return [dq]
+    def solve(self, t, h_pump, y):
+        h = self.resistance(t) * y**2
+        return (h_pump - h) / self.inductance
 
 
 class RLCCircuit(Circuit):
@@ -65,18 +65,19 @@ class RLCCircuit(Circuit):
         self.dhC0 = dhC0 # rate of pressure (head) at other side of capacitor
         self.h0pump = h0pump # pressure (head) at inlet of pump
 
-    def solve(self, t, h_pump, q, h):
+    def solve(self, t, h_pump, y):
         """
         h_pump: pump head
+        y = [q, h]
         q: pump flow rate
         h: circuit head
         """
-        impedance_head = self.h0pump(t) + h_pump - h[0]
+        impedance_head = self.h0pump(t) + h_pump - y[1]
         dq = impedance_head / self.L(t)
 
-        resistor_head = h[0] - self.hR0(t)
+        resistor_head = y[1] - self.hR0(t)
         qr = resistor_head / self.R(t, resistor_head)
-        qc = q - qr
+        qc = y[0] - qr
         dh = qc / self.C(t) + self.dhC0(t)
         return [dq, dh]
 
@@ -106,21 +107,23 @@ class RLCRCCircuit(RLCCircuit):
         self.Cac = Cac
         self.dhCac = dhCac
 
-    def solve(self, t, h_pump, q, h):
+    def solve(self, t, h_pump, y):
         """
         h_pump: pump head
+        y = [q, h, hac]
         q: pump flow rate
         h: circuit head
+        hac: circuit head actuator
         """
-        impedance_head = self.h0pump(t) + h_pump - h[0]
+        impedance_head = self.h0pump(t) + h_pump - y[1]
         dq = impedance_head / self.L(t)
 
-        hv_head = h[0] - h[1]
+        hv_head = y[1] - y[2]
         qhv = hv_head / self.R(t, hv_head)
-        qc = q - qhv
+        qc = y[0] - qhv
         dh = qc / self.C(t) + self.dhC0(t)
 
-        qr = (h[1] - self.hR0(t)) / self.Rout(t)
+        qr = (y[2] - self.hR0(t)) / self.Rout(t)
         qac = qhv - qr
         dhac = qac / self.Cac(t) + self.dhCac(t)
         return [dq, dh, dhac]

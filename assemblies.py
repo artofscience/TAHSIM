@@ -3,16 +3,16 @@ from scipy.integrate import solve_ivp
 
 from motors import DCMotor
 from pumps import CentrifugalPump
-from circuits import RLCCircuit
+from circuits import Circuit, RLCCircuit
 
 class MotorPumpLoadAssembly:
     def __init__(self,
                  motor: DCMotor = DCMotor(),
                  pump: CentrifugalPump = CentrifugalPump(),
-                 inverter: RLCCircuit = RLCCircuit()):
+                 circuit: Circuit = RLCCircuit()):
         self.motor = motor
         self.pump = pump
-        self.inverter = inverter
+        self.circuit = circuit
 
     def __call__(self,
                  y0: tuple[float, ...],
@@ -29,5 +29,11 @@ class MotorPumpLoadAssembly:
 
     def ode(self, t, y, tau, h_pump):
         dI, dw = self.motor.solve_tau(t, y[0], y[1], tau)
-        dq, dh = self.inverter.solve(t, h_pump, y[2], y[3])
+        dq, dh = self.circuit.solve(t, h_pump, y[2:])
         return [dI, dw, dq, dh]
+
+class MotorPumpLoadAssembly0(MotorPumpLoadAssembly):
+    def ode(self, t, y, tau, h_pump):
+        dI, dw = self.motor.solve_tau(t, y[0], y[1], tau)
+        dq = self.circuit.solve(t, h_pump, y[2])
+        return [dI, dw, dq]
