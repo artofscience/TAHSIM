@@ -36,9 +36,11 @@ class NLRLCircuit(Circuit):
         self.resistance = resistance
         self.inductance = inductance
 
+    def h(self, t, y):
+        return self.resistance(t) * y**2
+
     def solve(self, t, h_pump, y):
-        h = self.resistance(t) * y**2
-        return (h_pump - h) / self.inductance
+        return (h_pump - self.h(t, y)) / self.inductance
 
 
 class RLCCircuit(Circuit):
