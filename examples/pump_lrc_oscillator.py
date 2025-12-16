@@ -1,13 +1,10 @@
-import numpy as np
-from math import pi
-
 from matplotlib import pyplot as plt
 
 from utils import colored_line, Sigmoid
 
 from pumps import CentrifugalPump
 from motors import DCMotor
-from circuits import NLRLCircuit
+from circuits import RLCCircuit, Oscillator
 from assemblies import MotorPumpLoadAssembly
 
 from helper_functions.plot_pump_props import plot_pump_props
@@ -16,32 +13,35 @@ pump = CentrifugalPump()
 motor = DCMotor()
 
 # setup time-dependent voltage
-voltage = lambda t: Sigmoid(1.5, 1.0)(t) #+ Sigmoid(0.1, 7)(t) * np.sin(2 * 2 * pi * t)
+voltage = lambda t: Sigmoid(1.5, 1.0)(t)
 motor.set_voltage(voltage)
 
 # setup time-dependent circuit parameters
-resistance = lambda t: 0.5 + Sigmoid(2, 3.0)(t) + Sigmoid(1, 5.0)(t) * np.sin(2 * 2 * pi * t)
+resistance = Oscillator(0.1, 1000)
+capacitance = lambda t: 0.1 + Sigmoid(1, 4)(t)
 
-circuit = NLRLCircuit(resistance)
+circuit = RLCCircuit(resistance, capacitance)
 
 system = MotorPumpLoadAssembly(motor, pump, circuit)
 
 # solve system
-y0 = (0.0, 1.0, 0.1) # current, speed, flow
+y0 = (0.0, 1.0, 0.1, 0.0) # current, speed, flow, circuit head
 time, sol = system(y0)
-derivatives = system.solve(time, sol)
+# derivatives = system.solve(time, sol)
 
 VA = voltage(time)
 
 current = sol[0]
 speed = sol[1]
 flow_pump = sol[2]
-TL = sol[3]
-HP = sol[4]
+HR = sol[3]
+TL = sol[4]
+HP = sol[5]
 
-dcurrent = derivatives[0]
-dspeed = derivatives[1]
-dflow_pump = derivatives[2]
+# dcurrent = derivatives[0]
+# dspeed = derivatives[1]
+# dflow_pump = derivatives[2]
+# dHR = derivatives[3]
 
 
 fig, ax = plt.subplots()
@@ -75,12 +75,12 @@ plt.ylabel('Voltage [V]')
 
 VR = motor.R * current
 VE = motor.kb * speed
-VL = motor.L * dcurrent
+# VL = motor.L * dcurrent
 
 plt.plot(time, VA, label="Applied")
 plt.plot(time, VR, label="Resistance")
 plt.plot(time, VE, label="Back-EMF")
-plt.plot(time, VL, label="Inductance")
+# plt.plot(time, VL, label="Inductance")
 plt.legend()
 
 plt.figure()
@@ -90,12 +90,12 @@ plt.ylabel('Torque [Nmm]')
 
 TM = motor.kt * current
 TR = motor.mu * speed
-TI = motor.M * dspeed
+# TI = motor.M * dspeed
 
 plt.plot(time, 1e3 * TL, label="Pump")
 plt.plot(time, 1e3 * TM, label="Motor")
 plt.plot(time, 1e3 * TR, label="Viscous friction")
-plt.plot(time, 1e3 * TI, label="Inertia")
+# plt.plot(time, 1e3 * TI, label="Inertia")
 plt.legend()
 
 plt.figure()
@@ -103,29 +103,28 @@ plt.title('Pressure')
 plt.xlabel('Time [s]')
 plt.ylabel('Pressure head [m]')
 
-HR = circuit.h(time, flow_pump)
-HI = circuit.impedance * dflow_pump
+# HI = circuit.impedance * dflow_pump
 
 plt.plot(time, HP, label="Pump")
 plt.plot(time, HR, label="Resistance")
-plt.plot(time, HI, label="Impedance")
+# plt.plot(time, HI, label="Impedance")
 plt.legend()
 
 plt.figure()
 plt.title('Power')
 plt.plot(time, VA * current, label='Electrical input')
 plt.plot(time, VR * current, label="Electrical resistance")
-plt.plot(time, VL * current, label="Electrical inductance")
+# plt.plot(time, VL * current, label="Electrical inductance")
 plt.plot(time, VE * current, label="Electrical Back-EMF")
 
 plt.plot(time, TL * speed, label='Mechanical load power')
 plt.plot(time, TR * speed, label="Mechanical friction")
-plt.plot(time, TI * speed, label="Mechanical inertia")
+# plt.plot(time, TI * speed, label="Mechanical inertia")
 plt.plot(time, TM * speed, "--", label="Mechanical motor power")
 
 plt.plot(time, HP * pump.gamma * flow_pump / 60000, label='Pump hydraulic power')
 plt.plot(time, HR * pump.gamma * flow_pump / 60000, label='Resistor hydraulic power')
-plt.plot(time, HI * pump.gamma * flow_pump / 60000, label='Impedance hydraulic power')
+# plt.plot(time, HI * pump.gamma * flow_pump / 60000, label='Impedance hydraulic power')
 
 plt.xlabel('t [s]')
 plt.ylabel('P [W]')

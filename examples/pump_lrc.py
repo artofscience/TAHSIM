@@ -7,7 +7,7 @@ from utils import colored_line, Sigmoid
 
 from pumps import CentrifugalPump
 from motors import DCMotor
-from circuits import NLRLCircuit
+from circuits import RLCCircuit
 from assemblies import MotorPumpLoadAssembly
 
 from helper_functions.plot_pump_props import plot_pump_props
@@ -16,18 +16,19 @@ pump = CentrifugalPump()
 motor = DCMotor()
 
 # setup time-dependent voltage
-voltage = lambda t: Sigmoid(1.5, 1.0)(t) #+ Sigmoid(0.1, 7)(t) * np.sin(2 * 2 * pi * t)
+voltage = lambda t: Sigmoid(1.5, 1.0)(t) + Sigmoid(0.1, 7)(t) * np.sin(10 * 2 * pi * t)
 motor.set_voltage(voltage)
 
 # setup time-dependent circuit parameters
-resistance = lambda t: 0.5 + Sigmoid(2, 3.0)(t) + Sigmoid(1, 5.0)(t) * np.sin(2 * 2 * pi * t)
+resistance = lambda t, h: 0.5 + Sigmoid(2, 3.0)(t) + Sigmoid(1, 5.0)(t) * np.sin(2 * 2 * pi * t)
+capacitance = lambda t: 0.001 + Sigmoid(1, 7)(t)
 
-circuit = NLRLCircuit(resistance)
+circuit = RLCCircuit(resistance, capacitance)
 
 system = MotorPumpLoadAssembly(motor, pump, circuit)
 
 # solve system
-y0 = (0.0, 1.0, 0.1) # current, speed, flow
+y0 = (0.0, 1.0, 0.001, 0.0) # current, speed, flow, circuit head
 time, sol = system(y0)
 derivatives = system.solve(time, sol)
 
@@ -35,14 +36,21 @@ VA = voltage(time)
 
 current = sol[0]
 speed = sol[1]
-flow_pump = sol[2]
-TL = sol[3]
-HP = sol[4]
+QP = sol[2]
+HR = sol[3]
+TL = sol[4]
+HP = sol[5]
+
+circuit.resistance.closed = True
+QR = circuit.qr(time, HR)
+QC = QP - QR
 
 dcurrent = derivatives[0]
 dspeed = derivatives[1]
 dflow_pump = derivatives[2]
+dHR = derivatives[3]
 
+HI = circuit.impedance * dflow_pump
 
 fig, ax = plt.subplots()
 line = colored_line(current, voltage(time), time, ax, linewidth=10, cmap="hsv")
@@ -63,10 +71,28 @@ ax.set_ylabel('Load torque [Nmm]')
 
 fig, ax = plt.subplots()
 plot_pump_props(pump)
-line = colored_line(flow_pump, HP, time, ax, linewidth=10, cmap="hsv")
+line = colored_line(QP, HP, time, ax, linewidth=10, cmap="hsv")
 fig.colorbar(line)
 ax.set_xlabel('Flow rate Q [L/min]')
 ax.set_ylabel('Pressure head h [m]')
+
+fig, ax = plt.subplots()
+ax.set_title("Hydraulic resistor")
+line = colored_line(QR, HR, time, ax, linewidth=10, cmap="hsv")
+fig.colorbar(line)
+ax.set_xlabel('Flow rate Q [L/min]')
+ax.set_ylabel('Pressure head h [m]')
+ax.set_xlim([0.0, 1.5 * pump.q0p[-1]])
+ax.set_ylim([0.0, 1.5 * pump.h0p[0]])
+
+fig, ax = plt.subplots()
+ax.set_title("Hydraulic capacitor")
+line = colored_line(QC, HR, time, ax, linewidth=10, cmap="hsv")
+fig.colorbar(line)
+ax.set_xlabel('Flow rate Q [L/min]')
+ax.set_ylabel('Pressure head h [m]')
+ax.set_xlim([-1, 1])
+ax.set_ylim([0, 3])
 
 plt.figure()
 plt.title('Voltage')
@@ -103,12 +129,18 @@ plt.title('Pressure')
 plt.xlabel('Time [s]')
 plt.ylabel('Pressure head [m]')
 
-HR = circuit.h(time, flow_pump)
-HI = circuit.impedance * dflow_pump
-
 plt.plot(time, HP, label="Pump")
 plt.plot(time, HR, label="Resistance")
 plt.plot(time, HI, label="Impedance")
+plt.legend()
+
+plt.figure()
+plt.title('Flow')
+plt.xlabel('Time [s]')
+plt.ylabel('Flow rate [L/min]')
+plt.plot(time, QP, label="Pump")
+plt.plot(time, QR, label="Flow resistor")
+plt.plot(time, QC, label="Flow capacitor")
 plt.legend()
 
 plt.figure()
@@ -123,9 +155,9 @@ plt.plot(time, TR * speed, label="Mechanical friction")
 plt.plot(time, TI * speed, label="Mechanical inertia")
 plt.plot(time, TM * speed, "--", label="Mechanical motor power")
 
-plt.plot(time, HP * pump.gamma * flow_pump / 60000, label='Pump hydraulic power')
-plt.plot(time, HR * pump.gamma * flow_pump / 60000, label='Resistor hydraulic power')
-plt.plot(time, HI * pump.gamma * flow_pump / 60000, label='Impedance hydraulic power')
+plt.plot(time, HP * pump.gamma * QP / 60000, label='Pump hydraulic power')
+plt.plot(time, HR * pump.gamma * QP / 60000, label='Resistor hydraulic power')
+plt.plot(time, HI * pump.gamma * QP / 60000, label='Impedance hydraulic power')
 
 plt.xlabel('t [s]')
 plt.ylabel('P [W]')
