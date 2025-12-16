@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 from utils import Sigmoid
 
-fcn = Sigmoid(10, 10, 1)
+fcn = Sigmoid(10, 1, 10)
 
 a = 10 / fcn.k
 time = np.linspace(fcn.x0 - a, fcn.x0 + a, 100)

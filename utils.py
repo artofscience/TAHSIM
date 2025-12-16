@@ -7,7 +7,7 @@ from matplotlib.collections import LineCollection
 from sympy import symbols
 
 class Sigmoid:
-    def __init__(self, L: float = 1.0, k: float = 1.0, x0: float = 0.0):
+    def __init__(self, L: float = 1.0, x0: float = 0.0, k: float = 50):
         self.L = L
         self.k = k
         self.x0 = x0
