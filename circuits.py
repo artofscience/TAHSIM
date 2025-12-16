@@ -1,3 +1,5 @@
+import numpy as np
+
 """"
 Lumped-parameter models of dynamic flow circuits that inverter DC flow to AC flow, typically using hysteretic components.
 """
@@ -6,12 +8,16 @@ class Oscillator:
     """
     Resistance with pressure-dependent hysteresis.
     """
-    def __init__(self, Ropen: float = 1e4, Rclosed: float = 1e8):
+    def __init__(self,
+                 Ropen: float = 1,
+                 Rclosed: float = 100,
+                 dhopen: float = 3,
+                 dhclose: float = 1):
         self.Ropen = Ropen
         self.Rclosed = Rclosed
         self.closed = True
-        self.dhopen = 35
-        self.dhclose = 10
+        self.dhopen = dhopen
+        self.dhclose = dhclose
 
     def __call__(self, t, dh):
 
@@ -32,16 +38,16 @@ class NLRLCircuit(Circuit):
     """
     Pump --> Impedance --> Nonlinear resistor.
     """
-    def __init__(self, resistance, inductance):
+    def __init__(self, resistance, impedance: float = 0.01):
         self.resistance = resistance
-        self.inductance = inductance
+        self.impedance = impedance
+        self.resistance_power = 1
 
     def h(self, t, y):
-        return self.resistance(t) * y**2
+        return self.resistance(t) * np.power(y, self.resistance_power)
 
     def solve(self, t, h_pump, y):
-        return (h_pump - self.h(t, y)) / self.inductance
-
+        return [(h_pump - self.h(t, y[0])) / self.impedance]
 
 class RLCCircuit(Circuit):
     """
@@ -54,18 +60,15 @@ class RLCCircuit(Circuit):
     All components (R, L, C) are assumed a function of time, resistance assumed also a function of pressure difference.
     """
     def __init__(self,
-                 R = lambda t, h: 1.0,
-                 C = lambda t: 1.0,
-                 L = lambda t: 1.0,
-                 hR0 = lambda t: 0.0,
-                 dhC0 = lambda t: 0.0,
-                 h0pump = lambda t: 0.0):
-        self.R = R
-        self.C = C
-        self.L = L
-        self.hR0 = hR0 # pressure (head) at output of resistor
-        self.dhC0 = dhC0 # rate of pressure (head) at other side of capacitor
-        self.h0pump = h0pump # pressure (head) at inlet of pump
+                 resistance = lambda t, h: 1.0,
+                 capacitance = lambda t: 1.0,
+                 impedance: float = 0.01):
+        self.resistance = resistance
+        self.capacitance = capacitance
+        self.impedance = impedance
+
+    def qr(self, t, h_r):
+        return h_r / self.resistance(t, h_r)
 
     def solve(self, t, h_pump, y):
         """
@@ -74,13 +77,12 @@ class RLCCircuit(Circuit):
         q: pump flow rate
         h: circuit head
         """
-        impedance_head = self.h0pump(t) + h_pump - y[1]
-        dq = impedance_head / self.L(t)
+        impedance_head = h_pump - y[1]
+        dq = impedance_head / self.impedance
 
-        resistor_head = y[1] - self.hR0(t)
-        qr = resistor_head / self.R(t, resistor_head)
+        qr = self.qr(t, y[1])
         qc = y[0] - qr
-        dh = qc / self.C(t) + self.dhC0(t)
+        dh = qc / self.capacitance(t)
         return [dq, dh]
 
 class RLCRCCircuit(RLCCircuit):
