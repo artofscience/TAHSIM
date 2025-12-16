@@ -16,9 +16,9 @@ class MotorPumpLoadAssembly:
 
     def __call__(self,
                  y0: tuple[float, ...],
-                 t: float = 1.0,
+                 t: float = 10.0,
                  t_begin: float = 0.0,
-                 atol: float = 1e-3, rtol: float = 1e-3):
+                 atol: float = 1e-6, rtol: float = 1e-6):
         sol = solve_ivp(self.solve, [t_begin, t], y0, atol=atol, rtol=rtol)
         z = [self.pump.solve(sol.t[i], y) for i, y in enumerate(sol.y[1:3].T)]
         return sol.t, np.vstack(([sol.y, np.asarray(z).T]))
@@ -28,12 +28,6 @@ class MotorPumpLoadAssembly:
         return self.ode(t, y, tau, h_pump)
 
     def ode(self, t, y, tau, h_pump):
-        dI, dw = self.motor.solve_tau(t, y[0], y[1], tau)
-        dq, dh = self.circuit.solve(t, h_pump, y[2:])
-        return [dI, dw, dq, dh]
-
-class MotorPumpLoadAssembly0(MotorPumpLoadAssembly):
-    def ode(self, t, y, tau, h_pump):
-        dI, dw = self.motor.solve_tau(t, y[0], y[1], tau)
-        dq = self.circuit.solve(t, h_pump, y[2])
-        return [dI, dw, dq]
+        dmotor = self.motor.solve_tau(t, y[0], y[1], tau)
+        dcircuit = self.circuit.solve(t, h_pump, y[2:])
+        return dmotor + dcircuit # combinging two tuples
