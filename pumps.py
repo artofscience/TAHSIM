@@ -23,10 +23,10 @@ class CentrifugalPump(Pump):
     """
 
     def __init__(self,
-                 hm0: float = 6,
-                 qn0: float = 4,
-                 hn0: float = 4.5,
-                 qm0: float = 8,
+                 hm0: float = 2.4,
+                 qn0: float = 1.6,
+                 hn0: float = 1.8,
+                 qm0: float = 3.2,
                  w0: float = 1770 * (2 * pi / 60),
                  effn: float = 0.35):
 
