@@ -5,8 +5,8 @@ from utils import Sigmoid, colored_line
 
 from motors import DCMotor
 
-voltage = lambda t: Sigmoid(6.0, 20, 0.3)(t) + Sigmoid(1.0, 20, 1.0)(t) * np.sin(2 * (2*pi) * t)
-torque = lambda t, w: + Sigmoid(1e-3, 20, 2.0)(t) * np.sin(6 * (2*pi) * t) + 1e-9 * np.power(w, 2)
+voltage = lambda t: Sigmoid(6.0, 0.3, 20)(t) + Sigmoid(1.0, 1.0, 20)(t) * np.sin(2 * (2 * pi) * t)
+torque = lambda t, w: + Sigmoid(1e-3, 2.0, 20)(t) * np.sin(6 * (2 * pi) * t) + 1e-9 * np.power(w, 2)
 
 motor = DCMotor(voltage, torque)
 
