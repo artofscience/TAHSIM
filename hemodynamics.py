@@ -13,7 +13,7 @@ class VAV:
                  R: float = 1.05,
                  Z: float = 0.1,
                  Pv: float = 7.5,
-                 Rvo: float = 0.01,
+                 Rvo: float = 0.05,
                  Rvc: float = 1000):
         self.tah = tah
         self.L = L
