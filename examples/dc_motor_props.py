@@ -25,9 +25,6 @@ mechanical_power = speed * motor.torque(V, speed)
 efficiency = motor.efficiency(V, speed)
 
 plt.figure()
-
-plt.subplot(2, 1, 1)
-
 plt.plot(rpm, torque * tomilli)
 
 plt.xlim([0, no_load_speed * torpm])
@@ -36,7 +33,7 @@ plt.ylim([0, stall_torque * tomilli])
 plt.xlabel('kRPM')
 plt.ylabel('Torque [mN x m]')
 
-plt.subplot(2, 1, 2)
+plt.figure()
 
 plt.plot(rpm, electrical_power, label='Electrical')
 plt.plot(rpm, mechanical_power, label='Mechanical')
