@@ -33,6 +33,9 @@ class DoubleHill:
         self.rc = rc
         self.rr = rr
 
+        self.max = 1
+        self.max = np.max(self(np.linspace(0, self.period, 100)))
+
         # default values from Stergiopulos et al. (1996) Table 1. "Basic model parameters"
 
     def __call__(self, t) -> float:
@@ -41,7 +44,7 @@ class DoubleHill:
         tmp1 = (t / (self.alpha_systole * self.period)) ** self.rc
         tmp2 = (t / (self.alpha_diastole * self.period)) ** self.rr
 
-        return (tmp1 / (1 + tmp1)) * (1 / (1 + tmp2))
+        return (tmp1 / (1 + tmp1)) * (1 / (1 + tmp2)) / self.max
 
     def diff(self, t) -> float:
         t = t % self.period + 1e-16
