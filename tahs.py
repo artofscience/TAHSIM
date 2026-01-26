@@ -115,12 +115,9 @@ class PressureActuatedNonlinearMembrane(TAH):
 class LIMO(TAH):
     def __init__(self, Pact: TDP = TDP(min=0, max=120), L: float = 0.017, N: int = 8, D: float = 0.05, H: float = 0.001, mu: float = 3e5):
         self.Pact = Pact
-        # self.c = np.array([-2.26531554e+00,  1.61644772e+01,  1.01374824e-02, -3.77366149e+01,
-        #                    -3.00151200e+00,  1.06145026e+01,  2.87000461e+01,  9.13326808e-01])
-        self.c = np.array([-3.73674074, 26.34867036, 1.09021501, -59.92398559,
-               -5.03912252, 11.03755932, 42.90372121, 1.77124204])
-        # self.c = np.array([ -1.80115542,  12.81912422,  -0.39968068, -29.69849822,
-        # -2.1104906 ,  10.1370886 ,  23.2695619 ,   0.5423379 ])
+        self.c = np.array([-2.26531554e+00,  1.61644772e+01,  1.01374824e-02, -3.77366149e+01,
+                           -3.00151200e+00,  1.06145026e+01,  2.87000461e+01,  9.13326808e-01])
+
         self.mmhg2pa = 133
         self.ml2m3 = 1e-6
         self.mu = mu / self.mmhg2pa
@@ -156,25 +153,16 @@ class LIMO(TAH):
 
 if __name__ == '__main__':
 
-    limo = LIMO(TDP(min=10, max=120))
-
-    plt.figure()
-    vc = np.linspace(0.1, 1.0, 100)
-    t = np.linspace(0.001, 2.5, 100)
-    for time in t:
-        plt.plot(vc, limo.fcn(vc, time))
-
-    plt.xlim([-0.1, 1])
-    plt.ylim([-0.1, 2.5])
+    limo = LIMO(TDP(min=0, max=120))
 
     plt.figure()
     vc = np.linspace(10, 100, 100)
-    t = np.linspace(1, 140, 10)
+    t = np.linspace(0, 1, 10)
     for time in t:
         plt.plot(vc, limo.pressure(vc, time))
 
     plt.xlim([0, 100])
-    plt.ylim([-1, 100])
+    plt.ylim([-10, 100])
 
     plt.xlabel(r'$v_\text{c}$')
     plt.ylabel(r'$P_\text{c}$')
