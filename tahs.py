@@ -10,6 +10,10 @@ from utils import TDP
 
 
 class TAH(ABC):
+
+    """
+    Abstract TAH model assuming Pv = f[Vv, t]
+    """
     def pressure(self, volume: float, t: float) -> float:
         pass
 
@@ -36,6 +40,10 @@ class TimeVaryingElastance(TAH):
         return self.E.diff(t) * (volume - self.V0) + self.E(t) * flow
 
 class PressureActuatedLinearMembrane(TAH):
+    """
+    Pressure actuated linear membrane model.
+    Pv = Pa + E dVv
+    """
     def __init__(self, Pact: TDP = TDP(min=-4, max=120), E: float = 0.1, V0: float = 20):
         self.Pact = Pact
         self.E = E
