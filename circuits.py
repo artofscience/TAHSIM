@@ -67,8 +67,6 @@ class RLCCircuit(Circuit):
         self.capacitance = capacitance
         self.impedance = impedance
 
-    def qr(self, t, h_r):
-        return h_r / self.resistance(t, h_r)
 
     def solve(self, t, h_pump, y):
         """
@@ -80,7 +78,7 @@ class RLCCircuit(Circuit):
         impedance_head = h_pump - y[1]
         dq = impedance_head / self.impedance
 
-        qr = self.qr(t, y[1])
+        qr = y[1] / self.resistance(t, y[1])
         qc = y[0] - qr
         dh = qc / self.capacitance(t)
         return [dq, dh]
@@ -97,19 +95,14 @@ class RLCRCCircuit(RLCCircuit):
     All components (R, L, C, R, C) are assumed a function of time, resistance assumed also a function of pressure difference.
     """
     def __init__(self,
-                 R = lambda t, h: 1.0,
-                 C = lambda t: 1.0,
-                 L = lambda t: 1.0,
+                 resistance = lambda t, h: 1.0,
+                 capacitance = lambda t: 1.0,
+                 impedance: float = 0.01,
                  Rout = lambda t: 1.0,
-                 Cac = lambda t: 1.0,
-                 hR0 = lambda t: 0.0,
-                 dhC0 = lambda t: 0.0,
-                 dhCac = lambda t: 0.0,
-                 h0pump = lambda t: 0.0):
-        super().__init__(R, L, C, hR0, dhC0, h0pump)
+                 Cac = lambda t: 1.0):
+        super().__init__(resistance, capacitance, impedance)
         self.Rout = Rout
         self.Cac = Cac
-        self.dhCac = dhCac
 
     def solve(self, t, h_pump, y):
         """
@@ -119,15 +112,15 @@ class RLCRCCircuit(RLCCircuit):
         h: circuit head
         hac: circuit head actuator
         """
-        impedance_head = self.h0pump(t) + h_pump - y[1]
-        dq = impedance_head / self.L(t)
+        impedance_head = h_pump - y[1]
+        dq = impedance_head / self.impedance
 
         hv_head = y[1] - y[2]
-        qhv = hv_head / self.R(t, hv_head)
+        qhv = hv_head / self.resistance(t, hv_head)
         qc = y[0] - qhv
-        dh = qc / self.C(t) + self.dhC0(t)
+        dh = qc / self.capacitance(t)
 
-        qr = (y[2] - self.hR0(t)) / self.Rout(t)
+        qr = y[2] / self.Rout(t)
         qac = qhv - qr
-        dhac = qac / self.Cac(t) + self.dhCac(t)
+        dhac = qac / self.Cac(t)
         return [dq, dh, dhac]

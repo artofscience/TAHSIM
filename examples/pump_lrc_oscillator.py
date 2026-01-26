@@ -17,10 +17,10 @@ voltage = lambda t: Sigmoid(1.5, 1.0)(t)
 motor.set_voltage(voltage)
 
 # setup time-dependent circuit parameters
-resistance = Oscillator(0.1, 1000)
-capacitance = lambda t: 0.1 + Sigmoid(1, 4)(t)
+resistance = Oscillator(0.01, 10)
+capacitance = lambda t: 0.1 #+ Sigmoid(1, 4)(t)
 
-circuit = RLCCircuit(resistance, capacitance)
+circuit = RLCCircuit(resistance, capacitance, impedance=0.1)
 
 system = MotorPumpLoadAssembly(motor, pump, circuit)
 
@@ -33,10 +33,15 @@ VA = voltage(time)
 
 current = sol[0]
 speed = sol[1]
-flow_pump = sol[2]
+QP = sol[2]
 HR = sol[3]
 TL = sol[4]
 HP = sol[5]
+
+circuit.resistance.closed = True
+QR = [hr/circuit.resistance(time[i], hr) for i, hr in enumerate(HR)]
+QC = QP - QR
+
 
 # dcurrent = derivatives[0]
 # dspeed = derivatives[1]
@@ -63,7 +68,7 @@ ax.set_ylabel('Load torque [Nmm]')
 
 fig, ax = plt.subplots()
 plot_pump_props(pump)
-line = colored_line(flow_pump, HP, time, ax, linewidth=10, cmap="hsv")
+line = colored_line(QP, HP, time, ax, linewidth=10, cmap="hsv")
 fig.colorbar(line)
 ax.set_xlabel('Flow rate Q [L/min]')
 ax.set_ylabel('Pressure head h [m]')
@@ -111,6 +116,15 @@ plt.plot(time, HR, label="Resistance")
 plt.legend()
 
 plt.figure()
+plt.title('Flow')
+plt.xlabel('Time [s]')
+plt.ylabel('Flow rate [L/min]')
+plt.plot(time, QP, label="Pump")
+plt.plot(time, QR, label="Flow resistor")
+plt.plot(time, QC, label="Flow capacitor")
+plt.legend()
+
+plt.figure()
 plt.title('Power')
 plt.plot(time, VA * current, label='Electrical input')
 plt.plot(time, VR * current, label="Electrical resistance")
@@ -122,8 +136,8 @@ plt.plot(time, TR * speed, label="Mechanical friction")
 # plt.plot(time, TI * speed, label="Mechanical inertia")
 plt.plot(time, TM * speed, "--", label="Mechanical motor power")
 
-plt.plot(time, HP * pump.gamma * flow_pump / 60000, label='Pump hydraulic power')
-plt.plot(time, HR * pump.gamma * flow_pump / 60000, label='Resistor hydraulic power')
+plt.plot(time, HP * pump.gamma * QP / 60000, label='Pump hydraulic power')
+plt.plot(time, HR * pump.gamma * QP / 60000, label='Resistor hydraulic power')
 # plt.plot(time, HI * pump.gamma * flow_pump / 60000, label='Impedance hydraulic power')
 
 plt.xlabel('t [s]')
