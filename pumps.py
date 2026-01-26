@@ -61,7 +61,7 @@ class CentrifugalPump(Pump):
         h_pump = self.hq(y[1], y[0])
         qop_ref = (self.w0 / y[0]) * y[1]
         hydraulic_power_ref = qop_ref * self.hq0(qop_ref) * self.gamma / 60000
-        mechanical_power_ref = hydraulic_power_ref / self.eff0(qop_ref)
+        mechanical_power_ref = hydraulic_power_ref / self.eff0(y[1])
         tau = mechanical_power_ref * y[0]**2 / self.w0**3
         return tau, h_pump
 
