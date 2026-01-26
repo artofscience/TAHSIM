@@ -32,7 +32,6 @@ plt.axvline(80, color='k')
 plt.xlabel(r'$v_\text{v} = v_{\text{v},0} - \Delta v$')
 plt.ylabel(r'$P_\text{v} = P - \Delta P\left[\Delta v\right]$')
 
-plt.show()
 
 plt.figure()
 
