@@ -66,7 +66,7 @@ class DCMotor(Motor):
     """
     def __init__(self, applied_voltage=None,
                  load_torque=None,
-                 L: float = 0.11 / 1000,
+                 L: float = 0.11 / 1, # default is 0.11 / 1000
                  R: float = 1.71,
                  M: float = 3.88 / 1e7,
                  kt: float = 5.9 / 1000,
