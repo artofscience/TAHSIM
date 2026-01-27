@@ -2,10 +2,9 @@ from matplotlib import pyplot as plt
 
 from utils import colored_line, Sigmoid
 
-from pumps import CentrifugalPump
+from pumps import CentrifugalPump, MotorPumpLoadAssembly
 from motors import DCMotor
 from circuits import RLCCircuit, Oscillator
-from assemblies import MotorPumpLoadAssembly
 
 from helper_functions.plot_pump_props import plot_pump_props
 

@@ -5,29 +5,28 @@ from matplotlib import pyplot as plt
 
 from utils import colored_line, Sigmoid
 
-from pumps import CentrifugalPump
+from pumps import CentrifugalPump, MotorPumpLoadAssembly
 from motors import DCMotor
 from circuits import NLRLCircuit
-from assemblies import MotorPumpLoadAssembly
 
-from helper_functions.plot_pump_props import plot_pump_props
+from examples.helper_functions.plot_pump_props import plot_pump_props
 
 pump = CentrifugalPump()
-motor = DCMotor()
+motor = DCMotor(R=0.2, L=0.11/10)
 
 # setup time-dependent voltage
 voltage = lambda t: Sigmoid(1.5, 1.0)(t) #+ Sigmoid(0.1, 7)(t) * np.sin(2 * 2 * pi * t)
 motor.set_voltage(voltage)
 
 # setup time-dependent circuit parameters
-resistance = lambda t: 0.5 + Sigmoid(2, 3.0)(t) + Sigmoid(1, 5.0)(t) * np.sin(2 * 2 * pi * t)
+resistance = lambda t: 0.5 + Sigmoid(2, 3.0)(t) + Sigmoid(1.5, 5.0)(t) * np.sin(2 * 2 * pi * t)
 
 circuit = NLRLCircuit(resistance)
 
 system = MotorPumpLoadAssembly(motor, pump, circuit)
 
 # solve system
-y0 = (0.0, 1.0, 0.1) # current, speed, flow
+y0 = (0.0, 0.5, 0.01) # current, speed, flow
 time, sol = system(y0)
 derivatives = system.solve(time, sol)
 

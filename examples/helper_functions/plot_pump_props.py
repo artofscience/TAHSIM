@@ -19,4 +19,4 @@ def plot_pump_props(pump):
     plt.xlim([0.0, 1.5 * pump.q0p[-1]])
     plt.ylim([0.0, 1.5 * pump.h0p[0]])
 
-    plt.legend()
+    # plt.legend()

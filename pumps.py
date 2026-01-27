@@ -3,6 +3,11 @@ Lumped parameter models describing the analytical -- typically nonlinear but sta
 """
 import numpy as np
 from abc import ABC, abstractmethod
+
+from scipy.integrate import solve_ivp
+
+from circuits import Circuit, RLCCircuit
+from motors import DCMotor
 from utils import cubic_fit, quadratic_fit
 from math import pi
 from matplotlib import pyplot as plt
@@ -67,3 +72,31 @@ class CentrifugalPump(Pump):
 
     def get_operating_points(self, n: int = 100, tol: float = 1e-6):
         return np.linspace(tol, self.qm0-tol, n), np.linspace(0.0, self.hm0, n)
+
+
+class MotorPumpLoadAssembly:
+    def __init__(self,
+                 motor: DCMotor = DCMotor(),
+                 pump: CentrifugalPump = CentrifugalPump(),
+                 circuit: Circuit = RLCCircuit()):
+        self.motor = motor
+        self.pump = pump
+        self.circuit = circuit
+
+    def __call__(self,
+                 y0: tuple[float, ...],
+                 t: float = 10.0,
+                 t_begin: float = 0.0,
+                 atol: float = 1e-6, rtol: float = 1e-6):
+        sol = solve_ivp(self.solve, [t_begin, t], y0, atol=atol, rtol=rtol)
+        z = [self.pump.solve(sol.t[i], y) for i, y in enumerate(sol.y[1:3].T)]
+        return sol.t, np.vstack(([sol.y, np.asarray(z).T]))
+
+    def solve(self, t, y):
+        tau, h_pump = self.pump.solve(t, y[1:3]) # in kPa
+        return self.ode(t, y, tau, h_pump)
+
+    def ode(self, t, y, tau, h_pump):
+        dmotor = self.motor.solve_tau(t, y[0], y[1], tau)
+        dcircuit = self.circuit.solve(t, h_pump, y[2:])
+        return dmotor + dcircuit # combinging two tuples
