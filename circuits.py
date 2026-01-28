@@ -11,8 +11,8 @@ class Oscillator:
     def __init__(self,
                  Ropen: float = 1,
                  Rclosed: float = 100,
-                 dhopen: float = 3,
-                 dhclose: float = 1):
+                 dhopen: float = 2,
+                 dhclose: float = 0.5):
         self.Ropen = Ropen
         self.Rclosed = Rclosed
         self.closed = True
@@ -77,7 +77,6 @@ class RLCCircuit(Circuit):
         """
         impedance_head = h_pump - y[1]
         dq = impedance_head / self.impedance
-
         qr = y[1] / self.resistance(t, y[1])
         qc = y[0] - qr
         dh = qc / self.capacitance(t)
