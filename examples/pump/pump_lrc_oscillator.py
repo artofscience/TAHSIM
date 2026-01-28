@@ -24,7 +24,7 @@ circuit = RLCCircuit(resistance, capacitance)
 system = MotorPumpLoadAssembly(motor, pump, circuit)
 
 # solve system
-y0 = (0.0, 1.0, 0.001, 0.0) # current, speed, flow, circuit head
+y0 = (0.0, 1.0, 1e-6, 0.0) # current, speed, flow, circuit head
 time, sol = system(y0, 3)
 resistance.dhopen -= 0.01
 resistance.dhclose += 0.01
@@ -50,9 +50,6 @@ dcurrent = derivatives[0]
 dspeed = derivatives[1]
 dflow_pump = derivatives[2]
 dHR = derivatives[3]
-
-# QC = 0.4 * dHR
-# QR = QP - QC
 
 fig, ax = plt.subplots()
 line = colored_line(current, voltage(time), time, ax, linewidth=10, cmap="hsv")
