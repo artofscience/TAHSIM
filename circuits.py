@@ -123,3 +123,25 @@ class RLCRCCircuit(RLCCircuit):
         qac = qhv - qr
         dhac = qac / self.Cac(t)
         return [dq, dh, dhac]
+
+class RLCRCCircuitCL(RLCRCCircuit):
+    def solve(self, t, h_pump, y):
+        """
+        h_pump: pump head
+        y = [q, h, hac]
+        q: pump flow rate
+        h: circuit head
+        hac: circuit head actuator
+        """
+        impedance_head = h_pump - y[1] + y[2] - self.Rout(t) * y[0]
+        dq = impedance_head / self.impedance
+
+        hv_head = y[1] - y[2]
+        qhv = hv_head / self.resistance(t, hv_head)
+        qc = y[0] - qhv
+        dh = qc / self.capacitance(t)
+
+        # qr = y[2] / self.Rout(t)
+        qac = qhv - y[0]
+        dhac = qac / self.Cac(t)
+        return [dq, dh, dhac]
