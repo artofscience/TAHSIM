@@ -12,6 +12,39 @@ from utils import cubic_fit, quadratic_fit
 from math import pi
 from matplotlib import pyplot as plt
 
+class CP:
+    g = 9.81
+    rho = 1000
+    gamma = rho * g
+
+    def __init__(self,
+                 hm0: float = 2.4,
+                 qn0: float = 1.6,
+                 hn0: float = 1.8,
+                 qm0: float = 3.2,
+                 w0: float = 1770 * (2 * pi / 60),
+                 effn: float = 0.35):
+
+        self.w0 = w0 # reference speed
+
+        self.q0p = np.array([0.0, qn0, qm0]) # capacity points for H-Q at w0
+        self.h0p = np.array([hm0, hn0, 0.0]) # head points for H-Q at w0
+        self.w0 = w0
+
+        self.hq0_coeff = cubic_fit(self.q0p, self.h0p, 0, 0)
+        self.hq0 = np.poly1d(self.hq0_coeff) # H-Q curve at w0, h0(q0)
+        self.hq = lambda w, q: sum([self.hq0[i] * (w / self.w0) ** (2 - i) * q ** (i) for i in range(len(self.hq0)+1)]) # H-Q curve at w, h(q, w)
+
+        self.eff0p = np.array([0.0, effn, 0.0]) # efficiency points for eta(q0)
+        self.eff0 = np.poly1d(cubic_fit(self.q0p, self.eff0p, 1, 0))
+
+    def torque(self, speed, pump_capacity):
+        qop_ref = (self.w0 / speed) * pump_capacity
+        hydraulic_power_ref = qop_ref * self.hq0(qop_ref) * self.gamma / 60000
+        mechanical_power_ref = hydraulic_power_ref / self.eff0(pump_capacity)
+        torque = mechanical_power_ref * speed**2 / self.w0**3
+        return torque
+
 class Pump(ABC):
     g = 9.81  # gravitational acceleration
     rho = 1000  # fluid density
