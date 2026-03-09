@@ -15,6 +15,16 @@ params = {'legend.fontsize': 'xx-large',
          'axes.labelsize': 'xx-large'}
 pylab.rcParams.update(params)
 
+class DCM:
+    def __init__(self, voltage = lambda t: Sigmoid(2, 0.1)(t), R: float = 0.2, L: float = 0.11 / 10,
+                 M: float = 3.88 / 1e7, kt: float = 5.9 / 1000, mu: float = 12/1e7):
+        self.voltage = voltage
+        self.R = R
+        self.L = L
+        self.M = M
+        self.kt = kt
+        self.mu = mu
+
 class Motor(ABC):
     rpmtoradps = (2 * pi) / 60  # conversion rate rpm to rad/s
     radpstorpm = 1 / rpmtoradps  # conversion rate rad/s to rpm
