@@ -8,9 +8,17 @@ from abc import ABC, abstractmethod
 
 from utils import TDP
 
-
 class TAH(ABC):
+    """
+    Abstract TAH model assuming Pv = f[Vv, t]
+    """
+    def pressure(self, ha, vv):
+        pass
 
+    def pressure_diff(self, dha, dvv, vv):
+        pass
+
+class PATAH(ABC):
     """
     Abstract TAH model assuming Pv = f[Vv, t]
     """
@@ -20,7 +28,56 @@ class TAH(ABC):
     def pressure_diff(self, volume: float, flow: float, t: float) -> float:
         pass
 
-class TimeVaryingElastance(TAH):
+class LinearMembrane(TAH):
+    def __init__(self, E: float = 50, Vv0: float = 0, Vp0: float = 0):
+        self.E = E
+        self.Vv0 = Vv0
+        self.Vp0 = Vp0
+
+    def pressure(self, ha, vv):
+        """
+        dp = E dv
+        dp = pa - pv
+        dv = vv0 - vv
+        hv = ha - E (vv0 - vv) = ha + E (vv - vv0)
+        """
+        return ha + self.E * (vv - self.Vv0)
+
+    def pressure_diff(self, dha, dvv, vv):
+        """
+        dhv/dt = dha/dt + E * dvv/dt
+        """
+        return dha + self.E * dvv
+
+class NonlinearMembrane(TAH):
+
+    def __init__(self, a: float = 0.5, b: float = 50, Vv0: float = 0, Vp0: float = 0):
+        self.Vv0 = Vv0
+        self.Vp0 = Vp0
+        self.a = a
+        self.b = b
+
+    def pressure(self, ha, vv):
+        """
+        dp = a * dv + b * (dv)^3
+        """
+        dv = self.Vv0 - vv
+        dh = self.a * dv + self.b * dv**3
+        return ha - dh
+
+    def pressure_diff(self, dha, dvv, vv):
+        """
+        d dh / d dv = a + 3b dv^2
+        d dv / d vv = -1
+        d dh / d vv = - d dh / d dv
+        d hv / dt = dha / dt - d dh / d vv
+        d hv / dt = dha / dt + d dh / d dv
+        """
+        dv = self.Vv0 - vv
+        ddhddv = self.a + 3 * self.b * dv**2
+        return dha + ddhddv
+
+class TimeVaryingElastance(PATAH):
     def __init__(self, E: TDP = TDP(min=0.06, max=2.31), V0: float = 20):
         self.E = E
         self.V0 = V0
@@ -39,7 +96,7 @@ class TimeVaryingElastance(TAH):
         """
         return self.E.diff(t) * (volume - self.V0) + self.E(t) * flow
 
-class PressureActuatedLinearMembrane(TAH):
+class PressureActuatedLinearMembrane(PATAH):
     """
     Pressure actuated linear membrane model.
     Pv = Pa + E dVv
@@ -67,7 +124,7 @@ class PressureActuatedLinearMembrane(TAH):
         """
         return self.E * flow + self.Pact.diff(t)
 
-class PressureActuatedNonlinearMembrane(TAH):
+class PressureActuatedNonlinearMembrane(PATAH):
     def __init__(self, Pact: TDP = TDP(min=0, max=120), V0: float = 80,
                  a: float = 10,
                  b: float = 0.01,
@@ -120,7 +177,7 @@ class PressureActuatedNonlinearMembrane(TAH):
 
         return self.Pact.diff(t) + dPvdV * flow
 
-class LIMO(TAH):
+class LIMO(PATAH):
     def __init__(self, Pact: TDP = TDP(min=0, max=120), L: float = 0.017, N: int = 8, D: float = 0.05, H: float = 0.001, mu: float = 3e5):
         self.Pact = Pact
         self.c = np.array([-2.26531554e+00,  1.61644772e+01,  1.01374824e-02, -3.77366149e+01,
