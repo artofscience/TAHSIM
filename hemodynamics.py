@@ -60,3 +60,66 @@ class VAV:
         dPart /= 1 + tmp
 
         return [dVv, dP1, dPart]
+
+
+class Valve:
+    def __init__(self, Ro: float = 0.1, Rc: float = 30000, threshold: float = 0.0):
+        self.Ro = Ro
+        self.Rc = Rc
+        self.threshold = threshold
+
+    def __call__(self, dh):
+        return 1.0 * self.Ro if dh >= 0 else 1.0 * self.Rc
+
+class Segers:
+
+    def __init__(self, L: float = 0.00037,
+                 C: float = 0.1,
+                 R: float = 10,
+                 Z: float = 1,
+                 hven: float = 0.2,
+                 valve_pl: Valve = Valve(),
+                 valve_al: Valve = Valve()):
+        self.L = L # m / L/min^2
+        self.C = C # L / m
+        self.R = R # m / L/min
+        self.Z = Z # m / L/min
+        self.hven = hven # m
+        self.valve_pl = valve_pl
+        self.valve_al = valve_al
+
+class TCM:
+
+    def __init__(self, C1: float = 0.1,
+                 C2: float = 0.1,
+                 R: float = 10,
+                 valve_pl: Valve = Valve(),
+                 valve_al: Valve = Valve()):
+        self.C1 = C1 # L / m
+        self.C2 = C2
+        self.R = R # m / L/min
+        self.valve_pl = valve_pl
+        self.valve_al = valve_al
+
+class SCM:
+
+    def __init__(self, CS1: float = 0.1,
+                 CS2: float = 0.1,
+                 CP1: float = 0.1,
+                 CP2: float = 0.1,
+                 RS: float = 10,
+                 RP: float = 10,
+                 valve_rpl: Valve = Valve(),
+                 valve_ral: Valve = Valve(),
+                 valve_lpl: Valve = Valve(),
+                 valve_lal: Valve = Valve()):
+        self.CS1 = CS1 # L / m
+        self.CS2 = CS2
+        self.CP1 = CP1
+        self.CP2 = CP2
+        self.RS = RS # m / L/min
+        self.RP = RP
+        self.valve_rpl = valve_rpl
+        self.valve_ral = valve_ral
+        self.valve_lpl = valve_lpl
+        self.valve_lal = valve_lal
