@@ -30,6 +30,37 @@ class Oscillator:
         else:
             return self.Rclosed if self.closed else self.Ropen
 
+class HystereticValve:
+    """
+    Resistance with pressure-dependent hysteresis.
+    """
+    def __init__(self,
+                 Ropen: float = 0.1,
+                 Rclosed: float = 1000,
+                 dhopen: float = 2,
+                 dhclose: float = 0.5):
+        self.Ropen = Ropen
+        self.Rclosed = Rclosed
+        self.closed = True
+        self.dhopen = dhopen
+        self.dhclose = dhclose
+
+    def set_state(self, dh):
+        if dh > self.dhopen:
+            self.closed = False
+        elif dh < self.dhclose:
+            self.closed = True
+        else:
+            pass
+
+    def __call__(self, dh):
+        R = 1.0 * self.Rclosed if self.closed else 1.0 * self.Ropen
+        self.set_state(dh)
+        return R
+
+    def q(self, dh):
+        return np.asarray([x / self(x) for x in dh])
+
 class Circuit:
     def solve(self, t, h_pump, param):
         pass
@@ -145,3 +176,21 @@ class RLCRCCircuitCL(RLCRCCircuit):
         qac = qhv - y[0]
         dhac = qac / self.Cac(t)
         return [dq, dh, dhac]
+
+class LVL:
+    def __init__(self, oscillator: HystereticValve = HystereticValve(), C1: float = 1.0, C2: float = 0.01,
+                 R: float = 100, L: float = 0.01):
+        self.oscillator = oscillator
+        self.L = L
+        self.C1 = C1
+        self.C2 = C2
+        self.R = R
+
+class LVL2:
+    def __init__(self, C1: float = 1.0, C2: float = 0.01,
+                 R: float = 100, L: float = 0.01):
+        self.L = L
+        self.C1 = C1
+        self.C2 = C2
+        self.R = R
+
