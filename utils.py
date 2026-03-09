@@ -5,6 +5,7 @@ Utilitarian functionalities.
 import numpy as np
 from matplotlib.collections import LineCollection
 from sympy import symbols
+from typing import Protocol, Any
 
 class Sigmoid:
     def __init__(self, L: float = 1.0, x0: float = 0.0, k: float = 50):
@@ -172,3 +173,18 @@ def colored_line(x, y, c, ax, **lc_kwargs):
     lc.set_array(c)  # set the colors of each segment
 
     return ax.add_collection(lc)
+
+class Event(Protocol):
+    terminal: bool = True
+    direction: int = 0
+
+    def __call__(self, t, y, *args):
+        pass
+
+def event(terminal: bool = True, direction: float = 0):
+    def decorator_event(func: Any) -> Event:
+        func.terminal = terminal
+        func.direction = direction
+        return func
+
+    return decorator_event
