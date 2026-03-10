@@ -75,8 +75,9 @@ class System:
         self.circuit = circuit
         self.tah = tah
         self.hemo = hemo
-        self.ki: float = 100
-        self.reference_torque = Sigmoid(0.01, 3.0, 10)
+        self.ki: float = 5.0
+        self.kp: float = 0.0
+        self.reference_co = lambda t: Sigmoid(0.2, 1.0, 10)(t) - Sigmoid(0.1, 10.0, 10)(t)
 
 
     def solve(self, t, y):
@@ -84,14 +85,6 @@ class System:
 
         # tau(w, q)
         torque = self.pump.torque(speed, pump_capacity)
-
-        error = self.reference_torque(t) - torque
-
-        # voltage based on error
-        voltage = self.ki * int_error
-
-        # di(i, w, v(t))
-        di = (voltage - self.motor.R * current - self.motor.kt * speed) / self.motor.L
 
         # dw(i, w, tau(w, q))
         dw = (self.motor.kt * current - self.motor.mu * speed - torque) / self.motor.M
@@ -128,6 +121,16 @@ class System:
         qp = (hart - hb) / self.hemo.R
         dhart = (qart - qp) / self.hemo.C1
         dhb = (qp - qav) / self.hemo.C2
+
+        #####
+
+        error = self.reference_co(t) - qp
+
+        # voltage based on error
+        voltage = self.ki * int_error + self.kp * error
+
+        # di(i, w, v(t))
+        di = (voltage - self.motor.R * current - self.motor.kt * speed) / self.motor.L
 
         return [di, dw, dq_pump, dh1, dha, dvv, dhart, dhb, error]
 
@@ -270,7 +273,7 @@ plt.legend()
 
 # torque
 plt.figure()
-plt.plot(t_full, system.reference_torque(t_full), label='reference_torque')
+# plt.plot(t_full, system.reference_co(t_full), label='reference_torque')
 plt.plot(t_full, system.pump.torque(w, qp), label='tau_pump')
 plt.plot(t_full, motor.mu * w, label='tau_resist')
 plt.plot(t_full, motor.kt * i, label='tau_elec')
@@ -330,6 +333,9 @@ plt.plot(t_full, qhv, 'bo-', label="qhv")
 plt.plot(t_full, qp - qhv, 'yo-', label="qc1")
 plt.plot(t_full, qa, 'ro-', label="qa")
 plt.plot(t_full, qhv - qp -qa, 'mo-', label= "qc2")
+co = (hart - hb) / hemo.R
+plt.plot(t_full, co, 'k--', label="co")
+plt.plot(t_full, system.reference_co(t_full), 'r--', label="reference co")
 [plt.axvline(i, color='black', linestyle='--') for i in event_times]
 plt.legend()
 
@@ -346,6 +352,11 @@ plt.legend()
 
 plt.figure()
 plt.plot(vv, hv, label="ventricle PV")
+
+plt.figure()
+plt.plot(t_full, error, label="flow error")
+plt.plot(t_full, int_error, label="int_error (volume)")
+plt.legend()
 
 plt.show()
 
