@@ -75,13 +75,20 @@ class System:
         self.circuit = circuit
         self.tah = tah
         self.hemo = hemo
-        self.ki: float = 5.0
-        self.kp: float = 0.0
-        self.reference_co = lambda t: Sigmoid(0.2, 1.0, 10)(t) - Sigmoid(0.1, 10.0, 10)(t)
+        self.ki: float = 2
+        self.kp: float = 10
+        self.kd: float = 10
+        self.reference_co = lambda t: Sigmoid(0.15, 1.0, 10)(t) + Sigmoid(0.05, 30.0, 10)(t)
 
 
     def solve(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, int_error = y
+
+        # global history_t, history_y
+
+        # history_t.append(t)
+        # history_y.append(y.copy())
+
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, int_error, moving_avg, moving_avg2, z = y
 
         # tau(w, q)
         torque = self.pump.torque(speed, pump_capacity)
@@ -124,53 +131,62 @@ class System:
 
         #####
 
-        error = self.reference_co(t) - qp
+        dmavg_dt = (qp - moving_avg) / 3.0
+
+        dmavg2_dt = (moving_avg - moving_avg2) / 2.0
+
+        error = self.reference_co(t) - moving_avg2
+
+        derror = 10 * (error - z)
 
         # voltage based on error
-        voltage = self.ki * int_error + self.kp * error
+        voltage = self.ki * int_error + self.kp * error + self.kd * derror
 
         # di(i, w, v(t))
         di = (voltage - self.motor.R * current - self.motor.kt * speed) / self.motor.L
 
-        return [di, dw, dq_pump, dh1, dha, dvv, dhart, dhb, error]
+        return [di, dw, dq_pump, dh1, dha, dvv, dhart, dhb, error, dmavg_dt, dmavg2_dt, derror]
 
     @event(direction=1)
     def event_valve_opening(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, _ = y
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, _, _, _, _ = y
         return self.circuit.hvalve.event_open(h1 - ha)
 
     @event(direction=-1)
     def event_valve_closing(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, _ = y
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, _, _, _, _ = y
         return self.circuit.hvalve.event_close(h1 - ha)
 
     @event(direction=1)
     def event_valve_in_opening(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, _ = y
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, _, _, _, _ = y
         return self.hemo.valve_in.event_open(hb - self.tah.pressure(ha, vv))
 
     @event(direction=-1)
     def event_valve_in_closing(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, _ = y
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, _, _, _, _ = y
         return self.hemo.valve_in.event_close(hb - self.tah.pressure(ha, vv))
 
     @event(direction=1)
     def event_valve_out_opening(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, _ = y
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, _, _, _, _ = y
         return self.hemo.valve_out.event_open(self.tah.pressure(ha, vv) - hart)
 
     @event(direction=-1)
     def event_valve_out_closing(self, t, y):
-        current, speed, pump_capacity, h1, ha, vv, hart, hb, _ = y
+        current, speed, pump_capacity, h1, ha, vv, hart, hb, _, _, _, _ = y
         return self.hemo.valve_out.event_close(self.tah.pressure(ha, vv) - hart)
 
-voltage = lambda t: Sigmoid(2, 0.1)(t)
+# history_t = []
+# history_y = []
+
+voltage = lambda t: 0.0
 motor = DCM(voltage, R=0.2, L=0.01, M=3.88/1e7, kt=5.9/1000, mu=12/1e7)
 pump = CP(hm0=2.4, qn0=1.6, hn0=1.8, w0=1770 * (2* pi / 60), effn=0.35)
 oscillator = Valve(Ropen=1, Rclosed=1000, dhopen=4, dhclose=1)
 circuit = Circuit(oscillator, C1=1.0, C2=0.01, R=10, L=0.01)
 tah = LinearMembrane(E=1, Vv0=-1)
-heart_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.1, dhclose=0.0)
+heart_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.0, dhclose=0.0)
 hemo = TCM(heart_valve, deepcopy(heart_valve), C1=0.1, C2=0.5, R=5)
 system = System(motor=motor, pump=pump, circuit=circuit, tah=tah, hemo=hemo)
 
@@ -179,10 +195,10 @@ events = [system.event_valve_opening, system.event_valve_closing,
           system.event_valve_out_opening, system.event_valve_out_closing]
 
 # current, speed, pump_capacity, circuit_head, ha, ven_volume, hart, hb
-initial_state = (0.0, 1e-6, 1e-6, 0.0, 0.0, tah.Vv0, 0.0, 0.0, 0.0) # note preloaded system
+initial_state = (0.0, 1e-6, 1e-6, 0.0, 0.0, tah.Vv0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) # note preloaded system
 
 t_start = 0.0
-t_end = 20
+t_end = 60
 
 t_full = []
 y_full = []
@@ -241,8 +257,12 @@ valve_out_state = np.concatenate(valve_out_state)
 # event_times = event_times[m]
 derivatives = np.concatenate(derivatives, axis=1)
 
-i, w, qp, h1, ha, vv, hart, hb, int_error = y_full
-di, dw, dqp, dh1, dha, dvv, dhart, dhb, error = derivatives
+i, w, qp, h1, ha, vv, hart, hb, int_error, mavg, mavg2, z = y_full
+di, dw, dqp, dh1, dha, dvv, dhart, dhb, error, dmavg_dt, dmavg2_dt, dz = derivatives
+
+# plt.figure()
+# plt.plot(history_t, history_y[0])
+# plt.legend()
 
 # current
 plt.figure()
@@ -259,11 +279,13 @@ plt.legend()
 # voltage
 plt.figure()
 voltage = system.ki * int_error
-plt.plot(t_full, voltage, label='v')
-plt.plot(t_full, motor.R * i, label='v_resist')
-plt.plot(t_full , motor.kt * w, label='back-emf')
-plt.plot(t_full, motor.L * di, label='v_imp')
-[plt.axvline(i, color='black', linestyle='--') for i in event_times]
+plt.plot(t_full, voltage, label='motor supply voltage')
+# plt.plot(t_full, motor.R * i, label='v_resist')
+# plt.plot(t_full , motor.kt * w, label='back-emf')
+# plt.plot(t_full, motor.L * di, label='v_imp')
+# [plt.axvline(i, color='black', linestyle='--') for i in event_times]
+plt.xlabel('Time (s)')
+plt.ylabel('Voltage (V)')
 plt.legend()
 
 plt.figure()
@@ -327,16 +349,20 @@ plt.legend()
 
 plt.figure()
 qa = -dvv
-plt.plot(t_full, qp, 'ko-', label='qp')
-qhv = (h1 - ha) / [system.circuit.hvalve.Rclosed if i == 0 else system.circuit.hvalve.Ropen for i in hvalve_state]
-plt.plot(t_full, qhv, 'bo-', label="qhv")
-plt.plot(t_full, qp - qhv, 'yo-', label="qc1")
-plt.plot(t_full, qa, 'ro-', label="qa")
-plt.plot(t_full, qhv - qp -qa, 'mo-', label= "qc2")
+plt.plot(t_full, qp, 'k-', label='pump flow')
+# qhv = (h1 - ha) / [system.circuit.hvalve.Rclosed if i == 0 else system.circuit.hvalve.Ropen for i in hvalve_state]
+# plt.plot(t_full, qhv, 'bo-', label="qhv")
+# plt.plot(t_full, qp - qhv, 'yo-', label="qc1")
+plt.plot(t_full, qa, 'r-', label="ventricular flow")
+# plt.plot(t_full, qhv - qp -qa, 'mo-', label= "qc2")
 co = (hart - hb) / hemo.R
-plt.plot(t_full, co, 'k--', label="co")
-plt.plot(t_full, system.reference_co(t_full), 'r--', label="reference co")
-[plt.axvline(i, color='black', linestyle='--') for i in event_times]
+plt.plot(t_full, co, 'b-', label="cardiac output")
+plt.plot(t_full, mavg, 'y-', label="moving average co")
+plt.plot(t_full, mavg2, 'c-', label="moving average2 co")
+plt.plot(t_full, system.reference_co(t_full), 'b--', label="reference cardiac output")
+# [plt.axvline(i, color='black', linestyle='--') for i in event_times]
+plt.xlabel("Time (s)")
+plt.ylabel("Flow rate (L/min)")
 plt.legend()
 
 plt.figure()
@@ -356,6 +382,7 @@ plt.plot(vv, hv, label="ventricle PV")
 plt.figure()
 plt.plot(t_full, error, label="flow error")
 plt.plot(t_full, int_error, label="int_error (volume)")
+plt.plot(t_full, dz, label="derivative error")
 plt.legend()
 
 plt.show()
