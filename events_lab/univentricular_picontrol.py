@@ -184,7 +184,7 @@ voltage = lambda t: 0.0
 motor = DCM(voltage, R=0.2, L=0.01, M=3.88/1e7, kt=5.9/1000, mu=12/1e7)
 pump = CP(hm0=2.4, qn0=1.6, hn0=1.8, w0=1770 * (2* pi / 60), effn=0.35)
 oscillator = Valve(Ropen=1, Rclosed=1000, dhopen=4, dhclose=1)
-circuit = Circuit(oscillator, C1=1.0, C2=0.01, R=10, L=0.01)
+circuit = Circuit(oscillator, C1=1.0, C2=0.01, R=8, L=0.01)
 tah = LinearMembrane(E=1, Vv0=-1)
 heart_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.0, dhclose=0.0)
 hemo = TCM(heart_valve, deepcopy(heart_valve), C1=0.1, C2=0.5, R=5)
