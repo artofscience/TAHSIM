@@ -13,7 +13,7 @@ from utils import event
 from copy import deepcopy
 
 class Valve:
-    def __init__(self, Ropen:float=0.1, Rclosed:float=1e4, dhopen:float=4, dhclose:float=0.5, initial_state: int=0):
+    def __init__(self, Ropen:float=0.1, Rclosed:float=10, dhopen:float=0.0, dhclose:float=0.0, initial_state: int=0):
         self.Ropen = Ropen
         self.Rclosed = Rclosed
         self.dhopenref = dhopen
@@ -168,216 +168,217 @@ class BiVenSystem:
         haL, haR, vvL, vvR, hp1, hp2, hs1, hs2 = y
         return self.hemo.pc.valve_out.event_close(hp2 - self.tahL.pressure(haL, vvL))
 
-# pressure source of left ventricle has magnitude of 50 kPa (pressure head of 5 m)
-# pressure source of right ventricle has magnitude of 30 kPa (pressure head of 3 m)
-# duty cycle: 1/3 systole, 2/3 diastole
-freq = 1.0 # frequency: 1 Hz aka 60 BPM
-duty = 1/3
-pressure_source_left = Source(magnitude=5.0, freq=freq, phase=0, duty=duty)
-pressure_source_right = Source(magnitude=3.0, freq=freq, phase=0, duty=duty)
+if __name__ == "__main__":
+    # pressure source of left ventricle has magnitude of 50 kPa (pressure head of 5 m)
+    # pressure source of right ventricle has magnitude of 30 kPa (pressure head of 3 m)
+    # duty cycle: 1/3 systole, 2/3 diastole
+    freq = 1.0 # frequency: 1 Hz aka 60 BPM
+    duty = 1/3
+    pressure_source_left = Source(magnitude=5.0, freq=freq, phase=pi, duty=duty)
+    pressure_source_right = Source(magnitude=3.0, freq=freq, phase=0, duty=duty)
 
-# capacitance and resistance between pressure source and artificial ventricle
-inlet_capacitance_left = 0.05 # L/m
-inlet_capacitance_right = 0.05 # L/m
-inlet_resistance_left = 1 # m / L/s
-inlet_resistance_right = 1 # m / L/s
+    # capacitance and resistance between pressure source and artificial ventricle
+    inlet_capacitance_left = 0.05 # L/m
+    inlet_capacitance_right = 0.05 # L/m
+    inlet_resistance_left = 1 # m / L/s
+    inlet_resistance_right = 1 # m / L/s
 
-circuit = Circuit(SL=pressure_source_left, SR=pressure_source_right,
-                  CL=inlet_capacitance_left, CR=inlet_capacitance_right,
-                  RL=inlet_resistance_left, RR=inlet_resistance_right)
+    circuit = Circuit(SL=pressure_source_left, SR=pressure_source_right,
+                      CL=inlet_capacitance_left, CR=inlet_capacitance_right,
+                      RL=inlet_resistance_left, RR=inlet_resistance_right)
 
-mitral_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.0, dhclose=0.0)
-aortic_valve = deepcopy(mitral_valve)
-tricuspid_valve = deepcopy(mitral_valve)
-pulmonary_valve = deepcopy(mitral_valve)
+    mitral_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.0, dhclose=0.0)
+    aortic_valve = deepcopy(mitral_valve)
+    tricuspid_valve = deepcopy(mitral_valve)
+    pulmonary_valve = deepcopy(mitral_valve)
 
-# systemic circulation
-# TPR = (aortic pressure - RAP) / CO approx 120 - 2 mmHg / 5 L/min
-# TPR = 16 kpa / 5 L/min = 1.6 m / 0.083 L/s =approx 20 m / L/s
+    # systemic circulation
+    # TPR = (aortic pressure - RAP) / CO approx 120 - 2 mmHg / 5 L/min
+    # TPR = 16 kpa / 5 L/min = 1.6 m / 0.083 L/s =approx 20 m / L/s
 
-# capacitance in mL/mmHg
-# aortic: 1-2
-# systemic vascular: 10-200
-# pulmonary arterial 2-4
-# pulmonary vascular 4-6
+    # capacitance in mL/mmHg
+    # aortic: 1-2
+    # systemic vascular: 10-200
+    # pulmonary arterial 2-4
+    # pulmonary vascular 4-6
 
-# mL/mmHg to L/m is x 0.075
+    # mL/mmHg to L/m is x 0.075
 
-# aortic: 2 * 0.075 = 0.15
-# systemic: 200 * 0.075 = 15
-# pulmonary arterial: 4 * 0.075 = 0.3
-# pulmonary vascular: 6 * 0.075 = 0.45
+    # aortic: 2 * 0.075 = 0.15
+    # systemic: 200 * 0.075 = 15
+    # pulmonary arterial: 4 * 0.075 = 0.3
+    # pulmonary vascular: 6 * 0.075 = 0.45
 
-systemic_circulation = TCM(valve_in=aortic_valve, valve_out=tricuspid_valve, C1=0.15, C2=15, R=20)
+    systemic_circulation = TCM(valve_in=aortic_valve, valve_out=tricuspid_valve, C1=0.15, C2=15, R=20)
 
-# pulmonary resistance approx TPR/10
-pulmonary_circulation = TCM(valve_in=pulmonary_valve, valve_out=mitral_valve, C1=0.3, C2=0.45, R=2)
+    # pulmonary resistance approx TPR/10
+    pulmonary_circulation = TCM(valve_in=pulmonary_valve, valve_out=mitral_valve, C1=0.3, C2=0.45, R=2)
 
-hemo = SCM(pc=pulmonary_circulation, sc=systemic_circulation)
+    hemo = SCM(pc=pulmonary_circulation, sc=systemic_circulation)
 
-# elastance of heart approx E = dp/dv = 2m / 0.1 L = 20 m/L
-tahL = NonlinearMembrane(a=1, b=0, Vv0=0.2, Vp0=0.2)
-tahR = NonlinearMembrane(a=1, b=0, Vv0=0.2, Vp0=0.2)
+    # elastance of heart approx E = dp/dv = 2m / 0.1 L = 20 m/L
+    tahL = NonlinearMembrane(a=1, b=0, Vv0=0.2, Vp0=0.2)
+    tahR = NonlinearMembrane(a=1, b=0, Vv0=0.2, Vp0=0.2)
 
-system = BiVenSystem(circuit=circuit, tahL=tahL, tahR=tahR, hemo=hemo)
+    system = BiVenSystem(circuit=circuit, tahL=tahL, tahR=tahR, hemo=hemo)
 
-events = [system.event_valve_systemic_in_opening, system.event_valve_systemic_in_closing,
-          system.event_valve_systemic_out_opening, system.event_valve_systemic_out_closing,
-          system.event_valve_pulmonary_in_opening, system.event_valve_pulmonary_in_closing,
-          system.event_valve_pulmonary_out_opening, system.event_valve_pulmonary_out_closing
-          ]
+    events = [system.event_valve_systemic_in_opening, system.event_valve_systemic_in_closing,
+              system.event_valve_systemic_out_opening, system.event_valve_systemic_out_closing,
+              system.event_valve_pulmonary_in_opening, system.event_valve_pulmonary_in_closing,
+              system.event_valve_pulmonary_out_opening, system.event_valve_pulmonary_out_closing
+              ]
 
-# haL, haR, vvL, vvR, hp1, hp2, hs1, hs2
-initial_state = (0.0, 0.0, tahL.Vv0, tahR.Vv0, 0.0, 0.0, 0.0, 0.0)
+    # haL, haR, vvL, vvR, hp1, hp2, hs1, hs2
+    initial_state = (0.0, 0.0, tahL.Vv0, tahR.Vv0, 0.0, 0.0, 0.0, 0.0)
 
-t_start = 0.0
-t_end = 4
+    t_start = 0.0
+    t_end = 60
 
-t_full = []
-y_full = []
-valve_pcin_state = []
-valve_pcout_state = []
-valve_scin_state = []
-valve_scout_state = []
-derivatives = []
+    t_full = []
+    y_full = []
+    valve_pcin_state = []
+    valve_pcout_state = []
+    valve_scin_state = []
+    valve_scout_state = []
+    derivatives = []
 
-event_times = []
+    event_times = []
 
-while t_start < t_end:
-    sol = solve_ivp(system.solve, [t_start, t_end], initial_state, events=events, rtol=1e-9, atol=1e-9)
-    derivatives.append(system.solve(sol.t, sol.y))
+    while t_start < t_end:
+        sol = solve_ivp(system.solve, [t_start, t_end], initial_state, events=events, rtol=1e-9, atol=1e-9)
+        derivatives.append(system.solve(sol.t, sol.y))
 
-    t_full.append(sol.t)
-    y_full.append(sol.y)
-    valve_pcin_state.append(system.hemo.pc.valve_in.state * np.ones_like(sol.t))
-    valve_pcout_state.append(system.hemo.pc.valve_out.state * np.ones_like(sol.t))
-    valve_scin_state.append(system.hemo.sc.valve_in.state * np.ones_like(sol.t))
-    valve_scout_state.append(system.hemo.sc.valve_out.state * np.ones_like(sol.t))
+        t_full.append(sol.t)
+        y_full.append(sol.y)
+        valve_pcin_state.append(system.hemo.pc.valve_in.state * np.ones_like(sol.t))
+        valve_pcout_state.append(system.hemo.pc.valve_out.state * np.ones_like(sol.t))
+        valve_scin_state.append(system.hemo.sc.valve_in.state * np.ones_like(sol.t))
+        valve_scout_state.append(system.hemo.sc.valve_out.state * np.ones_like(sol.t))
 
-    if any([i.size > 0 for i in sol.t_events]):
+        if any([i.size > 0 for i in sol.t_events]):
 
-        event = next(i for i, j in enumerate(sol.t_events) if len(j))
-        if event == 0:
-            system.hemo.sc.valve_in.open()
-        elif event == 1:
-            system.hemo.sc.valve_in.close()
-        elif event == 2:
-            system.hemo.sc.valve_out.open()
-        elif event == 3:
-            system.hemo.sc.valve_out.close()
-        elif event == 4:
-            system.hemo.pc.valve_in.open()
-        elif event == 5:
-            system.hemo.pc.valve_in.close()
-        elif event == 6:
-            system.hemo.pc.valve_out.open()
-        elif event == 7:
-            system.hemo.pc.valve_out.close()
+            event = next(i for i, j in enumerate(sol.t_events) if len(j))
+            if event == 0:
+                system.hemo.sc.valve_in.open()
+            elif event == 1:
+                system.hemo.sc.valve_in.close()
+            elif event == 2:
+                system.hemo.sc.valve_out.open()
+            elif event == 3:
+                system.hemo.sc.valve_out.close()
+            elif event == 4:
+                system.hemo.pc.valve_in.open()
+            elif event == 5:
+                system.hemo.pc.valve_in.close()
+            elif event == 6:
+                system.hemo.pc.valve_out.open()
+            elif event == 7:
+                system.hemo.pc.valve_out.close()
+            else:
+                print("no valid event")
+
+            event_time = sol.t_events[event][0]
+            event_times.append(event_time)
+            print(event_time)
+            print(event)
+            t_start = event_time
+            initial_state = sol.y_events[event][0]
         else:
-            print("no valid event")
-
-        event_time = sol.t_events[event][0]
-        event_times.append(event_time)
-        print(event_time)
-        print(event)
-        t_start = event_time
-        initial_state = sol.y_events[event][0]
-    else:
-        t_start = t_end
+            t_start = t_end
 
 
-t_full = np.concatenate(t_full)
-y_full = np.concatenate(y_full, axis=1)
-valve_pcin_state = np.concatenate(valve_pcin_state)
-valve_pcout_state = np.concatenate(valve_pcout_state)
-valve_scin_state = np.concatenate(valve_scin_state)
-valve_scout_state = np.concatenate(valve_scout_state)
+    t_full = np.concatenate(t_full)
+    y_full = np.concatenate(y_full, axis=1)
+    valve_pcin_state = np.concatenate(valve_pcin_state)
+    valve_pcout_state = np.concatenate(valve_pcout_state)
+    valve_scin_state = np.concatenate(valve_scin_state)
+    valve_scout_state = np.concatenate(valve_scout_state)
 
-derivatives = np.concatenate(derivatives, axis=1)
+    derivatives = np.concatenate(derivatives, axis=1)
 
-haL, haR, vvL, vvR, hp1, hp2, hs1, hs2 = y_full
-dhaL, dhaR, dvvL, dvvR, dhp1, dhp2, dhs1, dhs2 = derivatives
+    haL, haR, vvL, vvR, hp1, hp2, hs1, hs2 = y_full
+    dhaL, dhaR, dvvL, dvvR, dhp1, dhp2, dhs1, dhs2 = derivatives
 
-plt.figure()
+    plt.figure()
 
-hvL = tahL.pressure(haL, vvL)
-hvR = tahR.pressure(haR, vvR)
+    hvL = tahL.pressure(haL, vvL)
+    hvR = tahR.pressure(haR, vvR)
 
-plt.plot(t_full, circuit.SL(t_full), 'r--', label="Source left")
-plt.plot(t_full, circuit.SR(t_full), 'b--', label="Source right")
+    plt.plot(t_full, circuit.SL(t_full), 'r--', label="Source left")
+    plt.plot(t_full, circuit.SR(t_full), 'b--', label="Source right")
 
-plt.plot(t_full, haL, 'r-.', label='Pouch left')
-plt.plot(t_full, haR, 'b-.', label='Pouch right')
+    plt.plot(t_full, haL, 'r-.', label='Pouch left')
+    plt.plot(t_full, haR, 'b-.', label='Pouch right')
 
-plt.plot(t_full, hvL, 'ro-', label='Ventricle left')
-plt.plot(t_full, hvR, 'bo-', label='Ventricle right')
+    plt.plot(t_full, hvL, 'ro-', label='Ventricle left')
+    plt.plot(t_full, hvR, 'bo-', label='Ventricle right')
 
-plt.plot(t_full, hs1, 'r-', label='Afterload left ventricle (aorta)')
-plt.plot(t_full, hp2, 'r:', label='Preload left ventricle (LAP, pulmonary)')
+    plt.plot(t_full, hs1, 'r-', label='Afterload left ventricle (aorta)')
+    plt.plot(t_full, hp2, 'r:', label='Preload left ventricle (LAP, pulmonary)')
 
-plt.plot(t_full, hp1, 'b-', label='Afterload right ventricle (pulmonary artery)')
-plt.plot(t_full, hs2, 'b:', label='Preload right ventricle (RAP, systemic)')
+    plt.plot(t_full, hp1, 'b-', label='Afterload right ventricle (pulmonary artery)')
+    plt.plot(t_full, hs2, 'b:', label='Preload right ventricle (RAP, systemic)')
 
-plt.xlabel("Time (s)")
-plt.ylabel("Pressure head (m)")
-plt.legend()
+    plt.xlabel("Time (s)")
+    plt.ylabel("Pressure head (m)")
+    plt.legend()
 
-plt.figure()
-qaL = -1.0 * dvvL
-qaR = -1.0 * dvvR
+    plt.figure()
+    qaL = -1.0 * dvvL
+    qaR = -1.0 * dvvR
 
-qsL = (circuit.SL(t_full) - haL) / circuit.RL
-qsR = (circuit.SR(t_full) - haR) / circuit.RR
+    qsL = (circuit.SL(t_full) - haL) / circuit.RL
+    qsR = (circuit.SR(t_full) - haR) / circuit.RR
 
-plt.plot(t_full, 60 * qsL, 'r--', label='Source left')
-plt.plot(t_full, 60 * qsR, 'b--', label='Source right')
-#
-# plt.plot(t_full, 60 * qaL, 'r-.', label='Pouch left')
-# plt.plot(t_full, 60 * qaR, 'b-.', label='Pouch right')
+    plt.plot(t_full, 60 * qsL, 'r--', label='Source left')
+    plt.plot(t_full, 60 * qsR, 'b--', label='Source right')
+    #
+    # plt.plot(t_full, 60 * qaL, 'r-.', label='Pouch left')
+    # plt.plot(t_full, 60 * qaR, 'b-.', label='Pouch right')
 
-plt.plot(t_full, 60 * qaL, 'r-', label='Ventricle left')
-plt.plot(t_full, 60 * qaR, 'b-', label='Ventricle right')
+    plt.plot(t_full, 60 * qaL, 'r-', label='Ventricle left')
+    plt.plot(t_full, 60 * qaR, 'b-', label='Ventricle right')
 
-plt.axhline(0, color='k')
+    plt.axhline(0, color='k')
 
-plt.xlabel("Time (s)")
-plt.ylabel("Flow rate (L/min)")
-plt.legend()
+    plt.xlabel("Time (s)")
+    plt.ylabel("Flow rate (L/min)")
+    plt.legend()
 
-plt.figure()
-plt.axhline(tahL.Vv0, linestyle='--', color='black', label="LVv0")
-plt.plot(t_full, vvL, 'k-', label="left ventricular volume")
-plt.axhline(tahR.Vv0, linestyle='--', color='blue', label="RVv0")
-plt.plot(t_full, vvR, 'b-', label="right ventricular volume")
-plt.plot(t_full, tahL.Vv0 - vvL, label="L-DV")
-plt.plot(t_full, tahR.Vv0 - vvR, label="R-DV")
-plt.plot(t_full, circuit.CL * haL, 'k--', label="left capacitor volume")
-plt.plot(t_full, circuit.CR * haR, 'b--', label="right capacitor volume")
-plt.plot(t_full, hemo.pc.C1 * hp1, 'y-', label="volume pulmonary 1")
-plt.plot(t_full, hemo.pc.C2 * hp2, 'c-', label="volume pulmonary 2")
-plt.plot(t_full, hemo.sc.C1 * hs1, 'r-', label="volume systemic 1")
-plt.plot(t_full, hemo.sc.C2 * hs2, 'g-', label="volume systemic 2")
-plt.xlabel("Time (s)")
-plt.ylabel("Volume (L)")
-plt.legend()
+    plt.figure()
+    plt.axhline(tahL.Vv0, linestyle='--', color='black', label="LVv0")
+    plt.plot(t_full, vvL, 'k-', label="left ventricular volume")
+    plt.axhline(tahR.Vv0, linestyle='--', color='blue', label="RVv0")
+    plt.plot(t_full, vvR, 'b-', label="right ventricular volume")
+    plt.plot(t_full, tahL.Vv0 - vvL, label="L-DV")
+    plt.plot(t_full, tahR.Vv0 - vvR, label="R-DV")
+    plt.plot(t_full, circuit.CL * haL, 'k--', label="left capacitor volume")
+    plt.plot(t_full, circuit.CR * haR, 'b--', label="right capacitor volume")
+    plt.plot(t_full, hemo.pc.C1 * hp1, 'y-', label="volume pulmonary 1")
+    plt.plot(t_full, hemo.pc.C2 * hp2, 'c-', label="volume pulmonary 2")
+    plt.plot(t_full, hemo.sc.C1 * hs1, 'r-', label="volume systemic 1")
+    plt.plot(t_full, hemo.sc.C2 * hs2, 'g-', label="volume systemic 2")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Volume (L)")
+    plt.legend()
 
 
-plt.figure()
-plt.plot(vvL, hvL, 'r-', label="left ventricle PV")
-plt.plot(tahL.Vp0 + tahL.Vv0 - vvL, haL, 'r--', label="left pouch PV")
-plt.axvline(tahL.Vp0, linestyle="dotted", color='red', label="initial left pouch volume")
-plt.axvline(tahL.Vv0, linestyle="dashed", color="red", label="initial left ventricle volume")
+    plt.figure()
+    plt.plot(vvL, hvL, 'r-', label="left ventricle PV")
+    plt.plot(tahL.Vp0 + tahL.Vv0 - vvL, haL, 'r--', label="left pouch PV")
+    plt.axvline(tahL.Vp0, linestyle="dotted", color='red', label="initial left pouch volume")
+    plt.axvline(tahL.Vv0, linestyle="dashed", color="red", label="initial left ventricle volume")
 
-plt.plot(vvR, hvR, 'k-', label="right ventricle PV")
-plt.plot(tahR.Vp0 + tahR.Vv0 - vvR, haR, 'k--', label="right pouch PV")
-plt.axvline(tahR.Vp0, linestyle="dotted", color='black', label="initial right pouch volume")
-plt.axvline(tahR.Vv0, linestyle="dashed", color="black", label="initial right ventricle volume")
-plt.legend()
+    plt.plot(vvR, hvR, 'k-', label="right ventricle PV")
+    plt.plot(tahR.Vp0 + tahR.Vv0 - vvR, haR, 'k--', label="right pouch PV")
+    plt.axvline(tahR.Vp0, linestyle="dotted", color='black', label="initial right pouch volume")
+    plt.axvline(tahR.Vv0, linestyle="dashed", color="black", label="initial right ventricle volume")
+    plt.legend()
 
-plt.figure()
-plt.plot(tahL.Vv0 - vvL, haL - hvL, label="L-DH-DV")
-plt.plot(tahR.Vv0 - vvR, haR - hvR, label="R-DH-DV")
-plt.axis("equal")
-plt.legend()
+    plt.figure()
+    plt.plot(tahL.Vv0 - vvL, haL - hvL, label="L-DH-DV")
+    plt.plot(tahR.Vv0 - vvR, haR - hvR, label="R-DH-DV")
+    plt.axis("equal")
+    plt.legend()
 
-plt.show()
+    plt.show()
