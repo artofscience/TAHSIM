@@ -12,7 +12,7 @@ from utils import event
 from copy import deepcopy
 
 class Valve:
-    def __init__(self, Ropen:float=0.1, Rclosed:float=1e4, dhopen:float=4, dhclose:float=0.5, initial_state: int=0):
+    def __init__(self, Ropen:float=0.1, Rclosed:float=1e4, dhopen:float=0.0, dhclose:float=0.0, initial_state: int=0):
         self.Ropen = Ropen
         self.Rclosed = Rclosed
         self.dhopenref = dhopen
@@ -214,338 +214,339 @@ class BiVenSystem:
         current, speed, pump_capacity, h1, haL, haR, vvL, vvR, hp1, hp2, hs1, hs2 = y
         return self.hemo.pc.valve_out.event_close(hp2 - self.tahL.pressure(haL, vvL))
 
-voltage = lambda t: Sigmoid(2, 1.0, k=5)(t)
-motor = DCM(voltage, R=0.2, L=0.5, M=3.88/1e6, kt=5.9/1000, mu=12/1e7)
-pump = CP(hm0=2.4, qn0=1.6, hn0=1.8, w0=1770 * (2* pi / 60), effn=0.35)
-oscillator = Valve(Ropen=3, Rclosed=1e4, dhopen=4, dhclose=1.5)
-circuit = Circuit(oscillator, C=0.5, CL=0.01, CR=0.01, R=10, L=1.0, RinL=0.5, RinR=1e4, RoutL=0.5, RoutR=0.5)
-# tahL = LinearMembrane(E=1, Vv0=1, Vp0=1)
-# tahR = LinearMembrane(E=5, Vv0=1, Vp0=1)
-tahL = NonlinearMembrane(a=0.5, b=10, Vv0=1, Vp0=0.9)
-tahR = NonlinearMembrane(a=0.5, b=10, Vv0=0.8, Vp0=0.7)
-heart_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.1, dhclose=0.0)
-hemo_pc = TCM(heart_valve, deepcopy(heart_valve), C1=0.1, C2=0.5, R=5)
-hemo_sc = TCM(deepcopy(heart_valve), deepcopy(heart_valve), C1=0.2, C2=10.0, R=20)
-hemo = SCM(hemo_pc, hemo_sc)
-system = BiVenSystem(motor=motor, pump=pump, circuit=circuit, tahL=tahL, tahR=tahR, hemo=hemo)
+if __name__ == "__main__":
+    voltage = lambda t: Sigmoid(2, 1.0, k=5)(t)
+    motor = DCM(voltage, R=0.2, L=0.5, M=3.88/1e6, kt=5.9/1000, mu=12/1e7)
+    pump = CP(hm0=2.4, qn0=1.6, hn0=1.8, w0=1770 * (2* pi / 60), effn=0.35)
+    oscillator = Valve(Ropen=3, Rclosed=1e4, dhopen=4, dhclose=1.5)
+    circuit = Circuit(oscillator, C=0.5, CL=0.01, CR=0.01, R=10, L=1.0, RinL=0.5, RinR=1e4, RoutL=0.5, RoutR=0.5)
+    # tahL = LinearMembrane(E=1, Vv0=1, Vp0=1)
+    # tahR = LinearMembrane(E=5, Vv0=1, Vp0=1)
+    tahL = NonlinearMembrane(a=0.5, b=10, Vv0=1, Vp0=0.9)
+    tahR = NonlinearMembrane(a=0.5, b=10, Vv0=0.8, Vp0=0.7)
+    heart_valve = Valve(Ropen=1, Rclosed=1e4, dhopen=0.1, dhclose=0.0)
+    hemo_pc = TCM(heart_valve, deepcopy(heart_valve), C1=0.1, C2=0.5, R=5)
+    hemo_sc = TCM(deepcopy(heart_valve), deepcopy(heart_valve), C1=0.2, C2=10.0, R=20)
+    hemo = SCM(hemo_pc, hemo_sc)
+    system = BiVenSystem(motor=motor, pump=pump, circuit=circuit, tahL=tahL, tahR=tahR, hemo=hemo)
 
-events = [system.event_valve_opening, system.event_valve_closing,
-          system.event_valve_systemic_in_opening, system.event_valve_systemic_in_closing,
-          system.event_valve_systemic_out_opening, system.event_valve_systemic_out_closing,
-          system.event_valve_pulmonary_in_opening, system.event_valve_pulmonary_in_closing,
-          system.event_valve_pulmonary_out_opening, system.event_valve_pulmonary_out_closing
-          ]
+    events = [system.event_valve_opening, system.event_valve_closing,
+              system.event_valve_systemic_in_opening, system.event_valve_systemic_in_closing,
+              system.event_valve_systemic_out_opening, system.event_valve_systemic_out_closing,
+              system.event_valve_pulmonary_in_opening, system.event_valve_pulmonary_in_closing,
+              system.event_valve_pulmonary_out_opening, system.event_valve_pulmonary_out_closing
+              ]
 
-# current, speed, pump_capacity, circuit_head, haL, haR, vvL, vvR, hp1, hp2, hs1, hs2
-initial_state = (0.0, 1e-6, 1e-6, 3.75 , 3.75, 3.75, tahL.Vv0, tahR.Vv0,0, 0, 0, 0)
+    # current, speed, pump_capacity, circuit_head, haL, haR, vvL, vvR, hp1, hp2, hs1, hs2
+    initial_state = (0.0, 1e-6, 1e-6, 3.75 , 3.75, 3.75, tahL.Vv0, tahR.Vv0,0, 0, 0, 0)
 
-t_start = 0.0
-t_end = 18
+    t_start = 0.0
+    t_end = 18
 
-t_full = []
-y_full = []
-hvalve_state = []
-valve_pcin_state = []
-valve_pcout_state = []
-valve_scin_state = []
-valve_scout_state = []
-derivatives = []
+    t_full = []
+    y_full = []
+    hvalve_state = []
+    valve_pcin_state = []
+    valve_pcout_state = []
+    valve_scin_state = []
+    valve_scout_state = []
+    derivatives = []
 
-event_times = []
+    event_times = []
 
-while t_start < t_end:
-    sol = solve_ivp(system.solve, [t_start, t_end], initial_state, events=events, rtol=1e-9, atol=1e-9)
-    derivatives.append(system.solve(sol.t, sol.y))
+    while t_start < t_end:
+        sol = solve_ivp(system.solve, [t_start, t_end], initial_state, events=events, rtol=1e-9, atol=1e-9)
+        derivatives.append(system.solve(sol.t, sol.y))
 
-    t_full.append(sol.t)
-    y_full.append(sol.y)
-    hvalve_state.append(system.circuit.hvalve.state * np.ones_like(sol.t))
-    valve_pcin_state.append(system.hemo.pc.valve_in.state * np.ones_like(sol.t))
-    valve_pcout_state.append(system.hemo.pc.valve_out.state * np.ones_like(sol.t))
-    valve_scin_state.append(system.hemo.sc.valve_in.state * np.ones_like(sol.t))
-    valve_scout_state.append(system.hemo.sc.valve_out.state * np.ones_like(sol.t))
+        t_full.append(sol.t)
+        y_full.append(sol.y)
+        hvalve_state.append(system.circuit.hvalve.state * np.ones_like(sol.t))
+        valve_pcin_state.append(system.hemo.pc.valve_in.state * np.ones_like(sol.t))
+        valve_pcout_state.append(system.hemo.pc.valve_out.state * np.ones_like(sol.t))
+        valve_scin_state.append(system.hemo.sc.valve_in.state * np.ones_like(sol.t))
+        valve_scout_state.append(system.hemo.sc.valve_out.state * np.ones_like(sol.t))
 
-    if any([i.size > 0 for i in sol.t_events]):
+        if any([i.size > 0 for i in sol.t_events]):
 
-        event = next(i for i, j in enumerate(sol.t_events) if len(j))
-        if event == 0:
-            system.circuit.hvalve.open()
-        elif event == 1:
-            system.circuit.hvalve.close()
-        elif event == 2:
-            system.hemo.sc.valve_in.open()
-        elif event == 3:
-            system.hemo.sc.valve_in.close()
-        elif event == 4:
-            system.hemo.sc.valve_out.open()
-        elif event == 5:
-            system.hemo.sc.valve_out.close()
-        elif event == 6:
-            system.hemo.pc.valve_in.open()
-        elif event == 7:
-            system.hemo.pc.valve_in.close()
-        elif event == 8:
-            system.hemo.pc.valve_out.open()
-        elif event == 9:
-            system.hemo.pc.valve_out.close()
+            event = next(i for i, j in enumerate(sol.t_events) if len(j))
+            if event == 0:
+                system.circuit.hvalve.open()
+            elif event == 1:
+                system.circuit.hvalve.close()
+            elif event == 2:
+                system.hemo.sc.valve_in.open()
+            elif event == 3:
+                system.hemo.sc.valve_in.close()
+            elif event == 4:
+                system.hemo.sc.valve_out.open()
+            elif event == 5:
+                system.hemo.sc.valve_out.close()
+            elif event == 6:
+                system.hemo.pc.valve_in.open()
+            elif event == 7:
+                system.hemo.pc.valve_in.close()
+            elif event == 8:
+                system.hemo.pc.valve_out.open()
+            elif event == 9:
+                system.hemo.pc.valve_out.close()
+            else:
+                print("no valid event")
+
+            event_time = sol.t_events[event][0]
+            event_times.append(event_time)
+            print(event_time)
+            print(event)
+            t_start = event_time
+            initial_state = sol.y_events[event][0]
         else:
-            print("no valid event")
-
-        event_time = sol.t_events[event][0]
-        event_times.append(event_time)
-        print(event_time)
-        print(event)
-        t_start = event_time
-        initial_state = sol.y_events[event][0]
-    else:
-        t_start = t_end
+            t_start = t_end
 
 
-length = 24
-offset = 5
-m = np.s_[-length-offset:-offset-1]
+    length = 24
+    offset = 5
+    m = np.s_[-length-offset:-offset-1]
 
-t_full = np.concatenate(t_full[m])
-y_full = np.concatenate(y_full[m], axis=1)
-hvalve_state = np.concatenate(hvalve_state[m])
-valve_pcin_state = np.concatenate(valve_pcin_state[m])
-valve_pcout_state = np.concatenate(valve_pcout_state[m])
-valve_scin_state = np.concatenate(valve_scin_state[m])
-valve_scout_state = np.concatenate(valve_scout_state[m])
+    t_full = np.concatenate(t_full[m])
+    y_full = np.concatenate(y_full[m], axis=1)
+    hvalve_state = np.concatenate(hvalve_state[m])
+    valve_pcin_state = np.concatenate(valve_pcin_state[m])
+    valve_pcout_state = np.concatenate(valve_pcout_state[m])
+    valve_scin_state = np.concatenate(valve_scin_state[m])
+    valve_scout_state = np.concatenate(valve_scout_state[m])
 
-derivatives = np.concatenate(derivatives[m], axis=1)
+    derivatives = np.concatenate(derivatives[m], axis=1)
 
-i, w, qp, h1, haL, haR, vvL, vvR, hp1, hp2, hs1, hs2 = y_full
-di, dw, dqp, dh1, dhaL, dhaR, dvvL, dvvR, dhp1, dhp2, dhs1, dhs2 = derivatives
+    i, w, qp, h1, haL, haR, vvL, vvR, hp1, hp2, hs1, hs2 = y_full
+    di, dw, dqp, dh1, dhaL, dhaR, dvvL, dvvR, dhp1, dhp2, dhs1, dhs2 = derivatives
 
-# current
-plt.figure()
-plt.plot(t_full, i, color='black', linewidth = 4, label='current')
-plt.xlabel('Time', fontsize=22)
-plt.ylabel('Current', fontsize=22)
-min, max = plt.ylim()
-plt.ylim(bottom=min*0.9, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
+    # current
+    plt.figure()
+    plt.plot(t_full, i, color='black', linewidth = 4, label='current')
+    plt.xlabel('Time', fontsize=22)
+    plt.ylabel('Current', fontsize=22)
+    min, max = plt.ylim()
+    plt.ylim(bottom=min*0.9, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
 
-# plt.legend()
-
-
-# voltage
-plt.figure()
-plt.plot(t_full, motor.voltage(t_full), label='Battery', linewidth=4, color="black")
-# plt.plot(t_full, motor.R * i, label='v_resist')
-plt.plot(t_full , motor.kt * w, label='Back-EMF', linewidth=4, color="red")
-# plt.plot(t_full, motor.L * di, label='v_imp')
-# plt.xlabel('Time')
-plt.ylabel('Voltage', fontsize=22)
-min, max = plt.ylim()
-plt.ylim(bottom=min*0.9, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-plt.legend(loc=1)
+    # plt.legend()
 
 
-plt.figure()
-plt.plot(t_full, w, label='speed', linewidth=4, color='black')
-# plt.xlabel('Time')
-plt.ylabel('Speed', fontsize=22)
-min, max = plt.ylim()
-plt.ylim(bottom=min*0.9, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-# plt.legend()
-
-# torque
-plt.figure()
-plt.plot(t_full, motor.kt * i, label='Motor', linewidth=4, color='black')
-plt.plot(t_full, system.pump.torque(w, qp), label='Pump', linewidth=4, color='red')
-# plt.plot(t_full, motor.mu * w, label='tau_resist')
-# plt.plot(t_full, motor.M * dw, label='tau_imp')
-# plt.xlabel('Time')
-plt.ylabel('Torque', fontsize=22)
-min, max = plt.ylim()
-plt.ylim(bottom=min*0.9, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-plt.legend(loc=1)
+    # voltage
+    plt.figure()
+    plt.plot(t_full, motor.voltage(t_full), label='Battery', linewidth=4, color="black")
+    # plt.plot(t_full, motor.R * i, label='v_resist')
+    plt.plot(t_full , motor.kt * w, label='Back-EMF', linewidth=4, color="red")
+    # plt.plot(t_full, motor.L * di, label='v_imp')
+    # plt.xlabel('Time')
+    plt.ylabel('Voltage', fontsize=22)
+    min, max = plt.ylim()
+    plt.ylim(bottom=min*0.9, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    plt.legend(loc=1)
 
 
-# plt.figure()
-hp = system.pump.hq(w, qp)
-hr = circuit.R * qp
-Rhv = np.asarray([circuit.hvalve.Ropen if i == 1 else circuit.hvalve.Rclosed for i in hvalve_state])
-ha = (h1 / Rhv + haL / circuit.RinL + haR / circuit.RinR) / (
-            1 / Rhv + 1 / circuit.RinR + 1 / circuit.RinL)
-hx = (haL / circuit.RoutL + haR / circuit.RoutR - qp) / (
-            1 / circuit.RoutL + 1 / circuit.RoutR)
+    plt.figure()
+    plt.plot(t_full, w, label='speed', linewidth=4, color='black')
+    # plt.xlabel('Time')
+    plt.ylabel('Speed', fontsize=22)
+    min, max = plt.ylim()
+    plt.ylim(bottom=min*0.9, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    # plt.legend()
 
-hpf = ha - hr
-hpa = ha - hr + hp
-hvL = tahL.pressure(haL, vvL)
-hvR = tahR.pressure(haR, vvR)
-
-# plt.plot(t_full, h1, 'k-', label="capacitance pressure")
-# plt.plot(t_full, hpf, 'g-', label="pressure before pump")
-# plt.plot(t_full, hpa, 'r-', label="pressure after pump")
-# plt.plot(t_full, ha, 'b-', label="pouch pressure")
-# plt.plot(t_full, haL, 'm-', label="pouch L pressure")
-# plt.plot(t_full, haR, 'c-', label="pouch R pressure")
-# plt.plot(t_full, hx, 'y-', label="pressure before resistor")
-# plt.plot(t_full, hvL, 'm--', label="left ventricular pressure")
-# plt.plot(t_full, hvR, 'c--', label="right ventricular pressure")
-
-# plt.legend()
-
-plt.figure()
-impedance_head = hx - hr + hp - h1
-plt.plot(t_full, hp, label="Pump", linewidth=4, color='black')
-# plt.plot(t_full, impedance_head, 'b-', label="head pressure impedance")
-# plt.plot(t_full, hr, 'y-', label="pressure loss resistance")
-plt.plot(t_full, h1-ha, label='Hysteretic valve', linewidth=4, color='red')
-
-# plt.plot(t_full, hvalve_state, 'k--', label="hysteretic valve state")
-# plt.axhline(oscillator.dhopenref, linestyle='--', color='black')
-# plt.axhline(oscillator.dhcloseref, linestyle='--', color='black')
-min, max = plt.ylim()
-plt.ylim(bottom=min*0.9, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-
-# plt.xlabel('Time')
-plt.ylabel('Pressure drop', fontsize=22)
-plt.legend(loc=1)
+    # torque
+    plt.figure()
+    plt.plot(t_full, motor.kt * i, label='Motor', linewidth=4, color='black')
+    plt.plot(t_full, system.pump.torque(w, qp), label='Pump', linewidth=4, color='red')
+    # plt.plot(t_full, motor.mu * w, label='tau_resist')
+    # plt.plot(t_full, motor.M * dw, label='tau_imp')
+    # plt.xlabel('Time')
+    plt.ylabel('Torque', fontsize=22)
+    min, max = plt.ylim()
+    plt.ylim(bottom=min*0.9, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    plt.legend(loc=1)
 
 
-plt.figure()
-plt.plot(t_full, haL, label="Pouch", linewidth=4, color='black')
-plt.plot(t_full, hvL, label='Ventricle', linewidth=4, color='red')
-plt.plot(t_full, hs1, label='Afterload', linewidth=4, color='blue')
-plt.plot(t_full, hp2, label='Preload', linewidth=4, color='green')
-plt.axhline(0, linestyle='--', color='black')
+    # plt.figure()
+    hp = system.pump.hq(w, qp)
+    hr = circuit.R * qp
+    Rhv = np.asarray([circuit.hvalve.Ropen if i == 1 else circuit.hvalve.Rclosed for i in hvalve_state])
+    ha = (h1 / Rhv + haL / circuit.RinL + haR / circuit.RinR) / (
+                1 / Rhv + 1 / circuit.RinR + 1 / circuit.RinL)
+    hx = (haL / circuit.RoutL + haR / circuit.RoutR - qp) / (
+                1 / circuit.RoutL + 1 / circuit.RoutR)
 
-# plt.plot(t_full, haR, 'c-', label="pouch R pressure")
-# plt.plot(t_full, hp1, 'k-', label='hp1')
-# plt.plot(t_full, hs2, 'c-', label='hs2')
-# plt.plot(t_full, hvR, 'y-', label='hvR')
-min, max = plt.ylim()
-plt.ylim(bottom=1.1*min, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-# plt.xlabel('Time')
-plt.ylabel('Pressure', fontsize=22)
+    hpf = ha - hr
+    hpa = ha - hr + hp
+    hvL = tahL.pressure(haL, vvL)
+    hvR = tahR.pressure(haR, vvR)
 
-plt.legend(loc=1)
+    # plt.plot(t_full, h1, 'k-', label="capacitance pressure")
+    # plt.plot(t_full, hpf, 'g-', label="pressure before pump")
+    # plt.plot(t_full, hpa, 'r-', label="pressure after pump")
+    # plt.plot(t_full, ha, 'b-', label="pouch pressure")
+    # plt.plot(t_full, haL, 'm-', label="pouch L pressure")
+    # plt.plot(t_full, haR, 'c-', label="pouch R pressure")
+    # plt.plot(t_full, hx, 'y-', label="pressure before resistor")
+    # plt.plot(t_full, hvL, 'm--', label="left ventricular pressure")
+    # plt.plot(t_full, hvR, 'c--', label="right ventricular pressure")
 
-# plt.figure()
-# plt.axhline(oscillator.dhopenref, linestyle='--', color='black')
-# plt.axhline(oscillator.dhcloseref, linestyle='--', color='black')
-# plt.axhline(0.1, linestyle='--', color='black')
-# plt.axhline(0.0, linestyle='--', color='black')
-#
-# plt.plot(t_full, h1-ha, 'ko-', label='pressure drop hysteretic valve')
-# plt.plot(t_full, hvR - hp1, 'bo-', label='pressure drop pcin valve')
-# plt.plot(t_full, hp2 - hvL, 'bo--', label='pressure drop pcout valve')
-# plt.plot(t_full, hvL - hs1, 'ro-', label='pressure drop scin valve')
-# plt.plot(t_full, hs2 - hvR, 'ro--', label='pressure drop scout valve')
+    # plt.legend()
 
+    plt.figure()
+    impedance_head = hx - hr + hp - h1
+    plt.plot(t_full, hp, label="Pump", linewidth=4, color='black')
+    # plt.plot(t_full, impedance_head, 'b-', label="head pressure impedance")
+    # plt.plot(t_full, hr, 'y-', label="pressure loss resistance")
+    plt.plot(t_full, h1-ha, label='Hysteretic valve', linewidth=4, color='red')
 
-#
-# plt.plot(t_full, hvalve_state, 'k-', label="hysteretic valve state")
-# plt.plot(t_full, valve_pcin_state, 'b-', label="pc in valve state")
-# plt.plot(t_full, valve_pcout_state, 'b--', label="pc out valve state")
-# plt.plot(t_full, valve_scin_state, 'r-', label="sc in valve state")
-# plt.plot(t_full, valve_scout_state, 'r--', label="sc out valve state")
-#
-# plt.legend()
+    # plt.plot(t_full, hvalve_state, 'k--', label="hysteretic valve state")
+    # plt.axhline(oscillator.dhopenref, linestyle='--', color='black')
+    # plt.axhline(oscillator.dhcloseref, linestyle='--', color='black')
+    min, max = plt.ylim()
+    plt.ylim(bottom=min*0.9, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
 
-# flows
-plt.figure()
-qhv = (h1 - ha) / Rhv
-qc1 = qp - qhv
-
-qinL = (ha - haL) / circuit.RinL
-qinR = (ha - haR) / circuit.RinR
-
-qoutL = (haL - hx) / circuit.RoutL
-qoutR = (haR - hx) / circuit.RoutR
-
-qaL = -1.0 * dvvL
-qaR = -1.0 * dvvR
-
-qcL = qinL - qoutL - qaL
-qcR = qinR - qoutR - qaR
-
-plt.plot(t_full, qp, label="Pump", linewidth=4, color='black')
-# plt.plot(t_full, qc1, 'r-', label="flow capacitor")
-plt.plot(t_full, qhv, label="Hysteretic valve", linewidth=4, color='red')
-# plt.plot(t_full, qinL, 'c-', label="left in")
-# plt.plot(t_full, qoutL, 'c--', label="left out")
-# plt.plot(t_full, qcL, 'y-', label="left capacitor")
-plt.plot(t_full, qaL, label="Pouch", linewidth=4, color='blue')
-# plt.plot(t_full, qinR, 'b-', label="right in")
-# plt.plot(t_full, qoutR, 'b--', label="right out")
-# plt.plot(t_full, qcR, 'm-', label="right capacitor")
-# plt.plot(t_full, qaR, 'm--', label="right pouch")
-min, max = plt.ylim()
-plt.ylim(bottom=1.1*min, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-# plt.xlabel('Time')
-plt.ylabel('Flow', fontsize=22)
-plt.legend(loc=1)
+    # plt.xlabel('Time')
+    plt.ylabel('Pressure drop', fontsize=22)
+    plt.legend(loc=1)
 
 
-plt.figure()
-# plt.axhline(tahL.Vv0, linestyle='--', color='black', label="LVv0")
-plt.plot(t_full, vvL, label="Ventricle", linewidth=4, color='black')
-# plt.axhline(tahR.Vv0, linestyle='--', color='blue', label="RVv0")
-# plt.plot(t_full, vvR, 'b-', label="right ventricular volume")
-# plt.plot(t_full, tahL.Vv0 - vvL, label="L-DV")
-# plt.plot(t_full, tahR.Vv0 - vvR, label="R-DV")
-# plt.plot(t_full, circuit.C * h1, 'm-', label="capacitance volume")
-# plt.plot(t_full, circuit.CL * haL, 'k--', label="left capacitor volume")
-# plt.plot(t_full, circuit.CR * haR, 'b--', label="right capacitor volume")
-# plt.plot(t_full, hemo.pc.C1 * hp1, 'y-', label="volume pulmonary 1")
-# plt.plot(t_full, hemo.pc.C2 * hp2, 'c-', label="volume pulmonary 2")
-# plt.plot(t_full, hemo.sc.C1 * hs1, 'r-', label="volume systemic 1")
-# plt.plot(t_full, hemo.sc.C2 * hs2, 'g-', label="volume systemic 2")
-plt.plot(t_full, hemo.sc.C1 * hs1 + hemo.sc.C2 * hs2, linewidth=4, color='red', label="Systemic")
+    plt.figure()
+    plt.plot(t_full, haL, label="Pouch", linewidth=4, color='black')
+    plt.plot(t_full, hvL, label='Ventricle', linewidth=4, color='red')
+    plt.plot(t_full, hs1, label='Afterload', linewidth=4, color='blue')
+    plt.plot(t_full, hp2, label='Preload', linewidth=4, color='green')
+    plt.axhline(0, linestyle='--', color='black')
 
-min, max = plt.ylim()
-plt.ylim(bottom=0.9*min, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-# plt.xlabel('Time')
-plt.ylabel('Volume', fontsize=22)
-plt.legend(loc=1)
+    # plt.plot(t_full, haR, 'c-', label="pouch R pressure")
+    # plt.plot(t_full, hp1, 'k-', label='hp1')
+    # plt.plot(t_full, hs2, 'c-', label='hs2')
+    # plt.plot(t_full, hvR, 'y-', label='hvR')
+    min, max = plt.ylim()
+    plt.ylim(bottom=1.1*min, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    # plt.xlabel('Time')
+    plt.ylabel('Pressure', fontsize=22)
 
-plt.figure()
-plt.plot(vvL, hvL, label="Ventricle", linewidth=4, color='black')
-plt.plot(tahL.Vp0 + tahL.Vv0 - vvL, haL, label="Pouch", linewidth=4, color='red')
-# plt.axvline(tahL.Vp0, linestyle="dotted", color='red', label="initial left pouch volume")
-# plt.axvline(tahL.Vv0, linestyle="dashed", color="red", label="initial left ventricle volume")
+    plt.legend(loc=1)
 
-# plt.plot(vvR, hvR, 'k-', label="right ventricle PV")
-# plt.plot(tahR.Vp0 + tahR.Vv0 - vvR, haR, 'k--', label="right pouch PV")
-# plt.axvline(tahR.Vp0, linestyle="dotted", color='black', label="initial right pouch volume")
-# plt.axvline(tahR.Vv0, linestyle="dashed", color="black", label="initial right ventricle volume")
+    # plt.figure()
+    # plt.axhline(oscillator.dhopenref, linestyle='--', color='black')
+    # plt.axhline(oscillator.dhcloseref, linestyle='--', color='black')
+    # plt.axhline(0.1, linestyle='--', color='black')
+    # plt.axhline(0.0, linestyle='--', color='black')
+    #
+    # plt.plot(t_full, h1-ha, 'ko-', label='pressure drop hysteretic valve')
+    # plt.plot(t_full, hvR - hp1, 'bo-', label='pressure drop pcin valve')
+    # plt.plot(t_full, hp2 - hvL, 'bo--', label='pressure drop pcout valve')
+    # plt.plot(t_full, hvL - hs1, 'ro-', label='pressure drop scin valve')
+    # plt.plot(t_full, hs2 - hvR, 'ro--', label='pressure drop scout valve')
 
-min, max = plt.ylim()
-plt.ylim(bottom=0.9*min, top=1.1 * max)
-plt.xticks([])  # Remove x-axis ticks
-plt.yticks([])  # Remove y-axis ticks
-plt.xlabel('Volume')
-plt.ylabel('Pressure')
-plt.legend(loc=1)
 
-# plt.figure()
-# plt.plot(tahL.Vv0 - vvL, haL - hvL, label="L-DH-DV")
-# plt.plot(tahR.Vv0 - vvR, haR - hvR, label="R-DH-DV")
-# plt.axis("equal")
-# plt.legend()
+    #
+    # plt.plot(t_full, hvalve_state, 'k-', label="hysteretic valve state")
+    # plt.plot(t_full, valve_pcin_state, 'b-', label="pc in valve state")
+    # plt.plot(t_full, valve_pcout_state, 'b--', label="pc out valve state")
+    # plt.plot(t_full, valve_scin_state, 'r-', label="sc in valve state")
+    # plt.plot(t_full, valve_scout_state, 'r--', label="sc out valve state")
+    #
+    # plt.legend()
 
-plt.show()
+    # flows
+    plt.figure()
+    qhv = (h1 - ha) / Rhv
+    qc1 = qp - qhv
+
+    qinL = (ha - haL) / circuit.RinL
+    qinR = (ha - haR) / circuit.RinR
+
+    qoutL = (haL - hx) / circuit.RoutL
+    qoutR = (haR - hx) / circuit.RoutR
+
+    qaL = -1.0 * dvvL
+    qaR = -1.0 * dvvR
+
+    qcL = qinL - qoutL - qaL
+    qcR = qinR - qoutR - qaR
+
+    plt.plot(t_full, qp, label="Pump", linewidth=4, color='black')
+    # plt.plot(t_full, qc1, 'r-', label="flow capacitor")
+    plt.plot(t_full, qhv, label="Hysteretic valve", linewidth=4, color='red')
+    # plt.plot(t_full, qinL, 'c-', label="left in")
+    # plt.plot(t_full, qoutL, 'c--', label="left out")
+    # plt.plot(t_full, qcL, 'y-', label="left capacitor")
+    plt.plot(t_full, qaL, label="Pouch", linewidth=4, color='blue')
+    # plt.plot(t_full, qinR, 'b-', label="right in")
+    # plt.plot(t_full, qoutR, 'b--', label="right out")
+    # plt.plot(t_full, qcR, 'm-', label="right capacitor")
+    # plt.plot(t_full, qaR, 'm--', label="right pouch")
+    min, max = plt.ylim()
+    plt.ylim(bottom=1.1*min, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    # plt.xlabel('Time')
+    plt.ylabel('Flow', fontsize=22)
+    plt.legend(loc=1)
+
+
+    plt.figure()
+    # plt.axhline(tahL.Vv0, linestyle='--', color='black', label="LVv0")
+    plt.plot(t_full, vvL, label="Ventricle", linewidth=4, color='black')
+    # plt.axhline(tahR.Vv0, linestyle='--', color='blue', label="RVv0")
+    # plt.plot(t_full, vvR, 'b-', label="right ventricular volume")
+    # plt.plot(t_full, tahL.Vv0 - vvL, label="L-DV")
+    # plt.plot(t_full, tahR.Vv0 - vvR, label="R-DV")
+    # plt.plot(t_full, circuit.C * h1, 'm-', label="capacitance volume")
+    # plt.plot(t_full, circuit.CL * haL, 'k--', label="left capacitor volume")
+    # plt.plot(t_full, circuit.CR * haR, 'b--', label="right capacitor volume")
+    # plt.plot(t_full, hemo.pc.C1 * hp1, 'y-', label="volume pulmonary 1")
+    # plt.plot(t_full, hemo.pc.C2 * hp2, 'c-', label="volume pulmonary 2")
+    # plt.plot(t_full, hemo.sc.C1 * hs1, 'r-', label="volume systemic 1")
+    # plt.plot(t_full, hemo.sc.C2 * hs2, 'g-', label="volume systemic 2")
+    plt.plot(t_full, hemo.sc.C1 * hs1 + hemo.sc.C2 * hs2, linewidth=4, color='red', label="Systemic")
+
+    min, max = plt.ylim()
+    plt.ylim(bottom=0.9*min, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    # plt.xlabel('Time')
+    plt.ylabel('Volume', fontsize=22)
+    plt.legend(loc=1)
+
+    plt.figure()
+    plt.plot(vvL, hvL, label="Ventricle", linewidth=4, color='black')
+    plt.plot(tahL.Vp0 + tahL.Vv0 - vvL, haL, label="Pouch", linewidth=4, color='red')
+    # plt.axvline(tahL.Vp0, linestyle="dotted", color='red', label="initial left pouch volume")
+    # plt.axvline(tahL.Vv0, linestyle="dashed", color="red", label="initial left ventricle volume")
+
+    # plt.plot(vvR, hvR, 'k-', label="right ventricle PV")
+    # plt.plot(tahR.Vp0 + tahR.Vv0 - vvR, haR, 'k--', label="right pouch PV")
+    # plt.axvline(tahR.Vp0, linestyle="dotted", color='black', label="initial right pouch volume")
+    # plt.axvline(tahR.Vv0, linestyle="dashed", color="black", label="initial right ventricle volume")
+
+    min, max = plt.ylim()
+    plt.ylim(bottom=0.9*min, top=1.1 * max)
+    plt.xticks([])  # Remove x-axis ticks
+    plt.yticks([])  # Remove y-axis ticks
+    plt.xlabel('Volume')
+    plt.ylabel('Pressure')
+    plt.legend(loc=1)
+
+    # plt.figure()
+    # plt.plot(tahL.Vv0 - vvL, haL - hvL, label="L-DH-DV")
+    # plt.plot(tahR.Vv0 - vvR, haR - hvR, label="R-DH-DV")
+    # plt.axis("equal")
+    # plt.legend()
+
+    plt.show()
 
 
 
